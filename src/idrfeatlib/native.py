@@ -1,7 +1,15 @@
-"""Module of default/native feature functions."""
+"""
+Module of default/native feature functions.
+
+See `compile_native_featurizer` to create sequence feature functions from a config
+like `native-features.json` in the same directory.
+
+See `compile_native_feature` for the format of configuration.
+"""
 import re
 import typing
 __all__ = [
+    "compile_native_featurizer",
     "compile_native_feature",
     "score_pattern_matches",
     "count_pattern_matches",
@@ -13,16 +21,176 @@ __all__ = [
     "complexity",
     "isoelectric_point"
 ]
+
+def compile_native_featurizer(features_dict = None):
+    """
+    Given a nested-dict object like `native-features.json` in this directory,
+    make a dictionary of names to feature functions.
+    
+    If no dictionary is provided, `native-features.json` is used. 
+
+    Layout
+    ------
+    The `features_dict` has the following expected sections:
+    {
+        "features": { ... },
+        "residue_groups": { ... },
+        "motif_frequencies": { ... },
+        "aa_frequencies": { ... }
+    }
+
+    The "features" section is a dict of (featname, feature json) pairs. The
+    features json contains all the kwargs necessary to compile one sequence function,
+    according to the `compile_native_feature` function just below this function.
+
+    The "residue_groups" section is a dict of names to strings/lists, depicting certain
+    special residue groups. (e.g. "charged" residues might be represented as {"charged": "DEKR"})
+    These residue groups are required for computing `simple_spacing` and `percent_res_group`
+    features (see `compile_native_feature`).
+    
+    The "motif_frequencies" section is an (optional) dict of motifs to their expected count per length.
+    See `count_pattern_matches_minus_expected`.
+
+    The "aa_frequencies" section is a dict of amino acids to their expected frequencies in the IDRome.
+    See `repeats_minus_expected` and `compile_native_feature`.
+    """
+    import json
+    import os
+    if features_dict is None:
+        with open(os.path.join(os.path.dirname(__file__), "native-features.json"), "r") as file:
+            features_dict = json.load(file) 
+    features = features_dict["features"]
+    residue_groups = features_dict.get("residue_groups") or {}
+    motif_frequencies = features_dict.get("motif_frequencies") or {}
+    residue_frequencies = features_dict.get("aa_frequencies")
+    return_value = {}
+    errors = {}
+    for featname, feature_params in features.items():
+        try:
+            return_value[featname] = compile_native_feature(residue_groups=residue_groups, motif_frequencies=motif_frequencies, residue_frequencies=residue_frequencies, **feature_params)
+        except (ValueError, TypeError) as e:
+            errors[featname] = e
+    return return_value, errors
+
 def compile_native_feature(
     *, 
     compute: str, 
     residue_groups: typing.Dict[str, str], 
+    motif_frequencies: typing.Dict[str, float],
+    residue_frequencies: typing.Optional[typing.Dict[str, float]],
     **kwargs
     ):
     """
-    Turn kwargs into a sequence to feature function.
+    Turn the provided kwargs into one sequence to feature function.
+
+    Parameters
+    ----------
+    The `residue_groups`, `motif_frequencies`, and `residue_frequencies`
+    are broadly described in `compile_native_featurizer` and required for
+    certain features below.
+
+    The `compute` parameter determines what type of feature will be
+    computed. The available ones are:
+    - "score"
+    - "count"
+    - "percent_residue"
+    - "percent_res_group"
+    - "span"
+    - "repeats"
+    - "log_ratio"
+    - "scd"
+    - "simple_spacing"
+    - "custom_kappa"
+    - "complexity" | "sequence_complexity"
+    - "isoelectric_point"
+
+    The necessary keyword arguments by computation type are:
     
-    You can use the kwargs directly. More often than not however, you'll use `**config`.
+    `compute="score"`
+    score : dict[str, float]
+        A dictionary with numeric scores (values) for each motif/residue (keys).
+    take_average | average : bool
+        If true, divide the summed score by sequence length.
+
+    `compute="count"`
+    pattern : str
+        The regex pattern to count.
+    take_average | average : bool
+        If true, divide the pattern count by sequence length.
+    subtract_expected : bool
+        If true, search the `motif_frequencies` for the expected count / length of this motif.
+        Will raise if this value is true but no such expected value can be found.
+        Uses the expected frequency in the `count_pattern_matches_minus_expected` function.
+    
+    `compute="percent_residue"`
+    residue : str
+        A single amino acid to get the composition of.
+    
+    `compute="percent_res_group"`
+    residue_group : str
+        The name of a residue group in the provided `residue_groups` dict.
+        Raises if such a group is not present.
+    
+    `compute="span"`
+    pattern : str
+        The regex pattern to get the span of.
+
+    `compute="repeats"`
+    residues : str | list[str]
+        The residues considered part of this class of repeats.
+        (e.g. "FYW" would make this an aromatic repeat computation)
+    subtract_expected : bool
+        If true, uses `aa_frequencies` (which must not be None) to produce an
+        expected number of repeat occurrences for each length.
+        See `repeats_minus_expected`.
+    
+    `compute="log_ratio"`
+    numerator : str
+        Single amino acid. Positively correlated with feature value.
+    denominator : str
+        Single amino acid. Negatively correlated with feature value.
+    
+    `compute="simple_spacing"`
+    residue_group : str
+        The name of a residue group in the provided `residue_groups` dict.
+        Raises if such a group is not present.
+
+    `compute=other`
+    No additional parameters required.
+    
+    OOP Rant
+    --------
+    a.k.a. the oop rebuttal that **nobody asked for**.
+    Really, you don't have to read this.
+
+    This function could have (and historically has) been replaced by an abstract `FeatureConfig`
+    or `IntoFeatureFunction` interface and a dict of implementors. That programming style,
+    however, is what led to the insanity of my last IDR feature libraries, where I had
+    to keep making up new files to distinguish between `Feature`, `ConfiguresOneFeature`,
+    `FeatureConfig`, and `ConfigureFeaturesBuilder`. While Java devs are used to this horror,
+    I personally find it incredibly hard to maintain (I have written this library four
+    times now primarily due to this abstraction bloat).
+
+    Additionally, I kept getting the abstraction wrong. Initially, the feature configuration
+    interface seemed easy: `def into_feature_function(self) -> typing.Callable[[str], float]`.
+    
+    ... and then I wanted to add the `subtract_expected` parameter that Iva/Khaled used on their
+    repeat code, which depended on a single `aa_frequencies` dict. So does the interface
+    need to be modified so that there is some way of using shared state in the compilation,
+    or does every `Repeats` object now have to hold a reference to the `aa_frequencies` dict?
+    
+    ... and then I wanted to add additional arguments, for instance when running a design loop and
+    the use of point mutations and the previous SCD can bypass a quadratic SCD calculation. So
+    do I need a generic helper class that contains additional context that can be used to speed
+    up a computation? Is the new signature something like this?
+    `def into_feature_function(self, compile_time_state) -> typing.Callable[[str, RUNTIME_STATE], float]`?
+    
+    Would an interface like that be useful at all to developers trying to understand what
+    the `FeatureConfig` abstract class is doing? I doubt it. Instead, the `typing.Callable[[str], float]`
+    interface describes succinctly and precisely what an IDR feature function ought to be.
+    Any code that can produce such a closure is a form of feature configuration.
+
+    This concludes my rant.
     """
     from functools import partial
 
@@ -30,17 +198,33 @@ def compile_native_feature(
         if (score := kwargs.get("score")) is None:
             raise ValueError("`compute=score` requires a `score` parameter (see `score_pattern_matches`)")
         average = kwargs.get("take_average") or kwargs.get("average") or False
+        if not isinstance(average, bool):
+            raise TypeError("expected `average` to be True or False")
+        if not isinstance(score, dict):
+            raise TypeError("expected `score` to be a dict of residue->score pairs")
         return partial(score_pattern_matches, score=score, average=average)
     
     if compute == "count":
         if (pattern := kwargs.get("pattern")) is None:
             raise ValueError("`compute=count` requires a `pattern` parameter (see `count_pattern_matches`)")
         average = kwargs.get("take_average") or kwargs.get("average") or False
+        if not isinstance(pattern, str):
+            raise TypeError("expected `pattern` to be a regex pattern")
+        if not isinstance(average, bool):
+            raise TypeError("expected `average` to be True or False")
+        if kwargs.get("subtract_expected"):
+            if (pattern_frequency := motif_frequencies.get(pattern)) is None:
+                raise ValueError("`subtract_expected` was set but no motif frequency for `%s` is available" % pattern)
+            if not isinstance(pattern_frequency, float):
+                raise TypeError("expected motif frequency for `%s` to be a number" % pattern)
+            return partial(count_pattern_matches_minus_expected, pattern=re.compile(pattern), pattern_frequency=pattern_frequency, average=average)
         return partial(count_pattern_matches, pattern=re.compile(pattern), average=average)
     
     if compute == "percent_residue":
         if (residue := kwargs.get("residue")) is None:
             raise ValueError("`compute=percent_residue` requires a residue as the `residue` parameter")
+        if not isinstance(residue, str) and len(residue) == 1:
+            raise TypeError("expected `residue` to be a single amino acid")
         return partial(count_pattern_matches, pattern=re.compile(residue), average=True)
     
     if compute == "percent_res_group":
@@ -48,12 +232,30 @@ def compile_native_feature(
             raise ValueError("`compute=percent_res_group` requires the name of a residue group as the `residue_group` parameter")
         if (res_group := residue_groups.get(res_group_name)) is None:
             raise ValueError("unknown residue group %s - available are: %s" % (res_group_name, ",".join(residue_groups.keys())))
+        if isinstance(res_group, list):
+            res_group = "".join(res_group)
+        if not isinstance(res_group, str):
+            raise TypeError("expected residue group %s to be a list or string of amino acids" % res_group_name)
         return partial(count_pattern_matches, pattern=re.compile("[%s]" % res_group), average=True)
     
     if compute == "span":
         if (pattern := kwargs.get("pattern")) is None:
             raise ValueError("`compute=span` requires a `pattern` parameter (see `pattern_match_span`)")
         return partial(pattern_match_span, pattern=re.compile(pattern))
+    
+    if compute == "repeats":
+        if (residues := kwargs.get("residues")) is None:
+            raise ValueError("`compute=repeats` requires the residues in the repeat as the `residues` parameter")
+        if isinstance(residues, list):
+            residues = "".join(residues)
+        if not isinstance(residues, str):
+            raise TypeError("expected `residues` to be a list or string of amino acids")
+        if kwargs.get("subtract_expected"):
+            if residue_frequencies is None:
+                raise ValueError("`subtract_expected` was set but no residue frequencies are available")
+            residue_frequency = sum(residue_frequencies.get(aa, 0) for aa in residues)
+            return partial(repeats_minus_expected, repeat_pattern=re.compile("[%s]" % residues), residue_frequency=residue_frequency)
+        return partial(pattern_match_span, pattern=re.compile("[%s]" % residues))
 
     if compute == "log_ratio":
         if (num_aa := kwargs.get("numerator")) is None:
@@ -70,12 +272,16 @@ def compile_native_feature(
             raise ValueError("`compute=simple_spacing` requires the name of a residue group as the `residue_group` parameter")
         if (res_group := residue_groups.get(res_group_name)) is None:
             raise ValueError("unknown residue group %s - available are: %s" % (res_group_name, ",".join(residue_groups.keys())))
+        if isinstance(res_group, list):
+            res_group = "".join(res_group)
+        if not isinstance(res_group, str):
+            raise TypeError("expected residue group %s to be a list or string of amino acids" % res_group_name)
         return simple_spacing_closure(res_group, res_group_name)
     
     if compute == "custom_kappa":
         return custom_kappa_closure()
 
-    if compute == "complexity":
+    if compute == "complexity" or compute == "sequence_complexity":
         return complexity
     
     if compute == "isoelectric_point":
@@ -86,7 +292,7 @@ def compile_native_feature(
 def score_pattern_matches(
     sequence: str,
     score: dict[re.Pattern[str], float],
-    average: bool = False,
+    average: bool,
 ) -> float:
     """Calculate a weighted count or average of regex occurrences.
 
@@ -103,8 +309,6 @@ def score_pattern_matches(
     average : bool, optional
         Whether to divide by sequence length at the end.
 
-        Defaults to ``False``.
-
     Raises
     ------
     If `average` is ``True`` and the provided sequence is empty.
@@ -119,7 +323,7 @@ def score_pattern_matches(
 def count_pattern_matches(
     sequence: str,
     pattern: re.Pattern[str],
-    average: bool = False,
+    average: bool,
 ) -> float:
     """Count or average the number of regex occurrences in a sequence.
 
@@ -134,6 +338,37 @@ def count_pattern_matches(
     average : bool, optional
         Whether to divide by sequence length at the end.
 
+    Raises
+    ------
+    If `average` is ``True`` and the provided sequence is empty.
+    """
+    result = len(re.findall(pattern, sequence))
+    if average:
+        return result / len(sequence)
+    return result
+
+def count_pattern_matches_minus_expected(
+    sequence: str,
+    pattern: re.Pattern[str],
+    pattern_frequency: float,
+    average: bool,
+) -> float:
+    """Count or average the number of regex occurrences in a sequence.
+
+    Parameters
+    ----------
+    sequence : str
+        Target sequence on which to count the regex occurrences.
+
+    pattern : str
+        The regex pattern to count.
+
+    pattern_frequency : float
+        The expected occurrence-per-residue of this pattern.
+
+    average : bool, optional
+        Whether to divide by sequence length at the end.
+
         Defaults to ``False``.
 
     Raises
@@ -141,6 +376,7 @@ def count_pattern_matches(
     If `average` is ``True`` and the provided sequence is empty.
     """
     result = len(re.findall(pattern, sequence))
+    result -= pattern_frequency * (len(sequence) - len(pattern.pattern))
     if average:
         return result / len(sequence)
     return result
@@ -163,6 +399,68 @@ def pattern_match_span(
     return sum(
         right - left for right, left in map(re.Match.span, re.finditer(pattern, sequence))
     )
+
+def repeats_minus_expected(
+    sequence: str,
+    repeat_pattern: re.Pattern[str],
+    residue_frequency: float
+) -> float:
+    """Calculate the total length spanned by patterns in a target sequence.
+
+    Parameters
+    ----------
+    sequence : str
+        Target sequence on which to determine the spanning length of the regex
+        occurrences.
+
+    repeat_pattern : str
+        The repeat as a regex pattern to determine the length of.
+
+    residue_frequency : float
+        The total probability of a uniformly drawn amino acid of being considered
+        as part of the repeat residues. (e.g. for K/R repeats, it would be p(K) + p(R))
+
+    Expected number
+    ---------------
+    Given a residue_frequency P describing the probability of a
+    residue in [`Repeats::residues`] occuring by chance, the
+    probability that any residue is part of a repeat sequence is:
+
+    ```
+        Case 2
+        v
+    XXXXXXXXXXX
+    ^         ^  
+    Case 1    Case 3
+    ```
+
+    1. The residue and its right neighbour must both be in the
+        residue set. This occurs with probability P^2.
+    2. The residue and its left or right neighbour must be in the
+        residue set. This occurs with probability 2 P^2. However,
+        we've double counted the case where the residue and the
+        left and right neighbour are in the set, so we subtract
+        P^3.
+    3. Residue and its left neighbour must be in residue set.
+        See 1.
+
+    ```
+    The resulting expression is like this:
+    2 P^2 + (L-2) x (2 P^2 - P^3)
+    -----    -------------------
+    edges           middle
+
+    Which goes to
+    P^2 (2 x (L-1) - (L-2) x P)
+    ```
+    """
+    expected_span = residue_frequency \
+                    * residue_frequency \
+                    * ((2 * (len(sequence) - 1))
+                        - ((len(sequence) - 2) * residue_frequency))
+    return sum(
+        right - left for right, left in map(re.Match.span, re.finditer(repeat_pattern, sequence))
+    ) - expected_span 
 
 def log_ratio(
     sequence: str,
@@ -445,7 +743,7 @@ def accurate_net_charge(
 def binary_search_root_finder(
     f: typing.Callable[[float], float],
     bracket: tuple[float, float],
-    threshold: float = 10 * -4,
+    threshold: float = 10 ** -4,
 ) -> float:
     """Find roots of a decreasing sigmoidal function.
 
