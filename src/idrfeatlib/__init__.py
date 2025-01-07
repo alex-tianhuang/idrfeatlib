@@ -130,29 +130,27 @@ class FeatureVector:
         var = FeatureVector(sum_sqr) / FeatureVector(count) - mean * mean
         return FeatureVector(count), mean, var
     @staticmethod
-    def dump(feature_vectors: typing.Iterable[typing.Tuple[str, "FeatureVector"]], path: str, primary_id = "label"):
+    def dump(feature_vectors: typing.List[typing.Tuple[str, "FeatureVector"]], path: str, primary_id = "label"):
         """
         Save labelled feature vectors to csv.
-        
-        The non primary id columns are inferred from the first feature vector.
         """
         import csv
-        feature_vectors = iter(feature_vectors)
-        if (item := next(feature_vectors, None)) is None:
+        if not feature_vectors:
             with open(path, "w") as file:
                 writer = csv.DictWriter(file, fieldnames=primary_id)
                 writer.writeheader()
             return
-        first_label, first_fvec = item
-        colnames = [primary_id] + list(first_fvec.as_dict.keys())
+        featnames = set()
+        ordered_featnames = list()
+        for _, feature_vector in feature_vectors:
+            for featname in feature_vector.as_dict.keys():
+                if featname not in featnames:
+                    featnames.add(featname)
+                    ordered_featnames.append(featname)
+        colnames = [primary_id] + ordered_featnames
         with open(path, "w") as file:
             writer = csv.DictWriter(file, fieldnames=colnames)
             writer.writeheader()
-            first_row = {
-                **first_fvec.as_dict,
-                primary_id: first_label
-            }
-            writer.writerow(first_row)
             for label, fvec in feature_vectors:
                 row = {
                     **fvec.as_dict,
@@ -179,7 +177,9 @@ class FeatureVector:
                 primary_id = reader.fieldnames[0]
             for row in reader:
                 label = row.pop(primary_id)
-                yield label, FeatureVector(row) # type: ignore
+                yield label, FeatureVector({
+                    featname: float(value) for featname, value in row.items() if value
+                })
     def __repr__(self) -> str:
         return "FeatureVector(%s)" % repr(self.as_dict)
     def __str__(self) -> str:
