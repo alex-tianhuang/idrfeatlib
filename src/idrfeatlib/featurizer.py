@@ -5,7 +5,8 @@ To make one of these, you need a dictionary of function pointers. To get the def
 sequence feature functions, see `compile_native_featurizer` in the `native` module in the
 same folder.
 
-Otherwise, feel free to add your own function pointers.
+Also feel free to add your own function pointers either using the `compile_featurizer` in this
+module, or just by constructing your own dict of named function pointers.
 """
 from . import FeatureVector
 import typing
@@ -45,3 +46,33 @@ class Featurizer:
             if errors:
                 errors_all[label] = errors
         return fvecs_all, errors_all
+
+
+def compile_featurizer(features_dict):
+    """
+    From a dict following the feature format specified in the `native` module,
+    remove features specifying `compute=custom` and put it into a seperate dict. 
+    
+    Combine the native and custom featurizers into one dict.
+    """
+    from .native import compile_native_featurizer
+    from .custom_features import compile_custom_featurizer
+    native_features_dict = {}
+    custom_features_dict = {}
+    for featname, feature_params in list(features_dict.items()):
+        if feature_params.get("compute") == "custom":
+            custom_features_dict[featname] = feature_params
+        else:
+            native_features_dict[featname] = feature_params
+    native, errors_native = compile_native_featurizer({
+        "features": native_features_dict,
+        "residue_groups": features_dict.get("residue_groups"),
+        "motif_frequencies": features_dict.get("motif_frequencies"),
+        "aa_frequencies": features_dict.get("aa_frequencies")
+    })
+    custom, errors_custom = compile_custom_featurizer(custom_features_dict)
+    return_value = native
+    return_value.update(custom)
+    return_errors = errors_native
+    return_errors.update(errors_custom)
+    return return_value, return_errors
