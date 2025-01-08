@@ -12,7 +12,7 @@ def parse_args():
     parser = argparse.ArgumentParser("compute-metric", description="compute the mean and weights of a given feature vector spreadsheet")
     parser.add_argument("input_file", help="input features csv file")
     parser.add_argument("output_file", help="output features csv file")
-    parser.add_argument("--primary-id", required=False, help="column name containing the fasta headers in the INPUT file")
+    parser.add_argument("--input-labels", nargs="*", required=False, help="column name(s) containing identifying columns in the INPUT file")
     parser.add_argument("--output-label", required=False, default="Label", help="column labelling the origin or weights vector in the OUTPUT file")
     parser.add_argument("--feature-file", required=False, help="feature configuration json")
     return parser.parse_args()
@@ -36,7 +36,11 @@ def main():
     for featname, error in errors.items():
         print("error compiling `%s`: %s" % (featname, error), file=sys.stderr)        
     featurizer = Featurizer(featurizer)
-    feature_vectors = (fvec for _, fvec in FeatureVector.load(args.input_file))
+    if args.input_labels:
+        input_labels = tuple(args.input_labels)
+    else:
+        input_labels = None 
+    feature_vectors = (fvec for _, fvec in FeatureVector.load(args.input_file, input_labels))
     feature_vectors = tqdm.tqdm(feature_vectors, desc="computing mean + var")
     _, mean, variance = FeatureVector.cmv(feature_vectors)
     weights = variance.map_values(lambda x: 1 / math.sqrt(x) if x > 0 else 0)
