@@ -36,8 +36,12 @@ class Featurizer:
             except acceptable_errors as e:
                 errors[featname] = e
         return FeatureVector(return_value), errors
-    def featurize_to_matrices(self, sequences: typing.Iterable[typing.Tuple[str, str]], *, acceptable_errors = (ArithmeticError, ValueError, KeyError)) -> typing.Tuple[typing.Dict[str, "FeatureVector"], typing.Dict[str, typing.Dict[str, Exception]]]:
-        """Compute the feature vector of many sequences, and also return their failed computations."""
+    def featurize_to_matrices(self, sequences: typing.Iterable[typing.Tuple[typing.Any, str]], *, acceptable_errors = (ArithmeticError, ValueError, KeyError)) -> typing.Tuple[typing.Dict[typing.Any, "FeatureVector"], typing.Dict[typing.Any, typing.Dict[str, Exception]]]:
+        """
+        Compute the feature vector of many sequences, and also return their failed computations.
+        
+        The two returned dicts (feature vector and errors) are indexed by whatever `sequences` was indexed by.
+        """
         fvecs_all = {}
         errors_all = {}
         for label, sequence in sequences:
