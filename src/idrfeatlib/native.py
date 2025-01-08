@@ -743,7 +743,7 @@ def accurate_net_charge(
 def binary_search_root_finder(
     f: typing.Callable[[float], float],
     bracket: tuple[float, float],
-    threshold: float = 10 ** -4,
+    threshold: float = 1e-4,
 ) -> float:
     """Find roots of a decreasing sigmoidal function.
 
