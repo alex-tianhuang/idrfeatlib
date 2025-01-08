@@ -130,14 +130,26 @@ class FeatureVector:
         var = FeatureVector(sum_sqr) / FeatureVector(count) - mean * mean
         return FeatureVector(count), mean, var
     @staticmethod
-    def dump(feature_vectors: typing.List[typing.Tuple[str, "FeatureVector"]], path: str, primary_id = "label"):
+    def dump(feature_vectors: typing.List[typing.Tuple[typing.Any, "FeatureVector"]], path: str, label_names: typing.Any = "label"):
         """
         Save labelled feature vectors to csv.
+
+        Usage
+        -----
+        The "labels" can be strings or ints (i.e. `feature_vectors` can be a list of (key, featvec) pairs),
+        and `label_names` is expected to be a string in this case.
+
+        The "labels" can also be n-tuples (i.e. `feature_vectors` can be a list of ((key1, key2, ...), featvec)))
+        and `label_names` is expected to be a n-tuple of strings (e.g. ("label1", "label2", etc.))
         """
         import csv
+        if not (isinstance(label_names, str) or isinstance(label_names, tuple)):
+            raise TypeError("`label_names` must be a string or n-tuple of strings")
         if not feature_vectors:
+            if isinstance(label_names, str):
+                label_names = (label_names,)
             with open(path, "w") as file:
-                writer = csv.DictWriter(file, fieldnames=primary_id)
+                writer = csv.DictWriter(file, fieldnames=label_names)
                 writer.writeheader()
             return
         featnames = set()
@@ -147,23 +159,45 @@ class FeatureVector:
                 if featname not in featnames:
                     featnames.add(featname)
                     ordered_featnames.append(featname)
-        colnames = [primary_id] + ordered_featnames
+        if isinstance(label_names, str):
+            colnames = [label_names] + ordered_featnames
+        else:
+            colnames = list(label_names) + ordered_featnames
         with open(path, "w") as file:
             writer = csv.DictWriter(file, fieldnames=colnames)
             writer.writeheader()
             for label, fvec in feature_vectors:
-                row = {
-                    **fvec.as_dict,
-                    primary_id: label
-                }
-                writer.writerow(row)
+                
+                if isinstance(label_names, str):
+                    assert isinstance(label, str), "if `label_names` is a string, `feature_vectors` should look like this: [(key, featvec)]"
+                    writer.writerow({
+                        **fvec.as_dict,
+                        label_names: label
+                    })
+                else:
+                    row = {
+                        **fvec.as_dict
+                    }
+                    assert isinstance(label, tuple) and len(label) == len(label_names), "if `label_names` is a tuple, `feature_vectors` should look like this: [((key1, key2, ...), featvec)]"
+                    for sublabel, label_name in zip(label, label_names):
+                        row[label_name] = sublabel
+                    writer.writerow(row)
+                
     @staticmethod
-    def load(path: str, primary_id = None) -> typing.Iterator[typing.Tuple[str, "FeatureVector"]]:
+    def load(path: str, labels: typing.Any = None) -> typing.Iterator[typing.Tuple[typing.Any, "FeatureVector"]]:
         """
         Load feature vectors from csv (as an iterator).
 
-        If no primary id is given, it is assumed to be the first column.
+        Usage
+        -----
+        The `labels` argument determines what type the iterator will yield.
 
+        In the return type `Iterator[Tuple[X, FeatureVector]]`, I refer to the type `X` as the "left-type".
+
+        If `labels` is None, left-type are strings corresponding to the first column of the csv.
+        If `labels` is a string, the left-type are strings corresponding to that column of the csv.
+        If `labels` is a tuple of strings, the left-type are string tuples corresponding to those columns of the csv.
+        
         Example
         -------
         fvecs = list(FeatureVector.load("some_fvecs.csv"))
@@ -171,15 +205,23 @@ class FeatureVector:
         import csv
         with open(path, "r") as file:
             reader = csv.DictReader(file)
-            if primary_id is None:
+            if labels is None:
                 if reader.fieldnames is None:
                     return
-                primary_id = reader.fieldnames[0]
-            for row in reader:
-                label = row.pop(primary_id)
-                yield label, FeatureVector({
-                    featname: float(value) for featname, value in row.items() if value
-                })
+                labels = reader.fieldnames[0]
+            if isinstance(labels, tuple):
+                for row in reader:
+                    label_tuple = tuple(row.pop(column) for column in labels)
+                    yield label_tuple, FeatureVector({
+                        featname: float(value) for featname, value in row.items() if value
+                    })
+            else:
+                for row in reader:
+                    label = row.pop(labels)
+                    yield label, FeatureVector({
+                        featname: float(value) for featname, value in row.items() if value
+                    })
+                
     def __repr__(self) -> str:
         return "FeatureVector(%s)" % repr(self.as_dict)
     def __str__(self) -> str:
