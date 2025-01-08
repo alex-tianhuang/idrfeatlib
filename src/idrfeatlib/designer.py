@@ -108,7 +108,7 @@ class FeatureDesigner:
                         new_scd_machine = None
                     new_candidates.append((candidate, new_scd_machine))
                 all_candidates.extend(new_candidates)
-                
+            iteration += 1
             yield {
                 **query_fvec.as_dict,
                 "Iteration": iteration,
@@ -120,7 +120,7 @@ class FeatureDesigner:
             **query_fvec.as_dict,
             "Iteration": "END",
             "Sequence": query,
-            "Time": 0
+            "Time": time() - start_time
         }
         return query
 
@@ -235,7 +235,7 @@ class ScdMachine:
         This is called before the next round of `mock_mutation`s.
         """
         if mutation_to not in CHARGE:
-            self.charged_res.remove(mutation_pos)
+            self.charged_res.discard(mutation_pos)
         else:
             self.charged_res.add(mutation_pos)
         self.previous_scd = scd
