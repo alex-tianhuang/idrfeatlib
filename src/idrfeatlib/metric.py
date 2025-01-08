@@ -1,4 +1,5 @@
 from . import FeatureVector
+import typing
 
 class Metric:
     """Object holding an `origin` and a `weights` vector."""
@@ -16,7 +17,7 @@ class Metric:
             norm += coordinate * coordinate
         return norm
     @staticmethod
-    def load(path: str, primary_id = None, origin_label = "origin", weights_label = "weights"):
+    def load(path: str, labels: typing.Any = None, origin_label = "origin", weights_label = "weights"):
         """
         Load an origin and weight feature vector from a csv.
 
@@ -26,7 +27,7 @@ class Metric:
         -------
         metric = Metric.load("origin-weight.csv")
         """
-        fvecs = dict(FeatureVector.load(path, primary_id=primary_id))
+        fvecs = dict(FeatureVector.load(path, labels=labels))
         origin = fvecs[origin_label]
         weights = fvecs[weights_label]
         return Metric(origin, weights)
@@ -35,5 +36,5 @@ class Metric:
         FeatureVector.dump([
             (origin_label, self.origin),
             (weights_label, self.weights)
-        ], path, primary_id=primary_id)
+        ], path, label_names=primary_id)
         
