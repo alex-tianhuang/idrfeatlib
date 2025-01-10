@@ -61,15 +61,17 @@ def compile_featurizer(features_dict):
     """
     from .native import compile_native_featurizer
     from .custom_features import compile_custom_featurizer
-    native_features_dict = {}
+    native_features = {}
     custom_features_dict = {}
-    for featname, feature_params in list(features_dict.items()):
+    if (features := features_dict.get("features")) is None:
+        raise ValueError("Expected `features` key in the provided dict.")
+    for featname, feature_params in list(features.items()):
         if feature_params.get("compute") == "custom":
             custom_features_dict[featname] = feature_params
         else:
-            native_features_dict[featname] = feature_params
+            native_features[featname] = feature_params
     native, errors_native = compile_native_featurizer({
-        "features": native_features_dict,
+        "features": native_features,
         "residue_groups": features_dict.get("residue_groups"),
         "motif_frequencies": features_dict.get("motif_frequencies"),
         "aa_frequencies": features_dict.get("aa_frequencies")

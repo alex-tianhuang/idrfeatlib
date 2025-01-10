@@ -80,34 +80,40 @@ class FeatureDesigner:
         while curr_dist_to_tgt - next_dist_to_tgt > self.convergence_threshold:
             curr_dist_to_tgt = next_dist_to_tgt
             all_candidates = [(query, copy(scd_machine))]
+            best_machine = scd_machine
 
             for mutation_pos, mutation_to in self.find_lower_mutations(
                 self.generate_mutations(len(query)), curr_dist_to_tgt, query, featurizer, scd_machine, acceptable_errors=acceptable_errors
             ):
                 new_candidates = []
                 for old_candidate, old_scd_machine in all_candidates:
+                    mutation_from = old_candidate[mutation_pos]
                     if old_scd_machine is not None:
                         assert scd_machine is not None
-                        scd_machine.clone_from(old_scd_machine)
-                    assert (candidate := apply_mutation(old_candidate,mutation_pos, mutation_to, scd_machine)) is not None
+                        scd_machine.clone_from(old_scd_machine, shallow=False)
+                    assert (candidate := apply_mutation(old_candidate, mutation_pos, mutation_to, scd_machine)) is not None
                     try:
                         candidate_fvec, _ = featurizer.featurize(candidate, acceptable_errors=())    
                     except acceptable_errors:
                         continue
                     candidate_dist_to_tgt = self.metric.euclidean_norm_of(candidate_fvec)
-                    if next_dist_to_tgt > candidate_dist_to_tgt:
-                        next_dist_to_tgt = candidate_dist_to_tgt
-                        query_fvec = candidate_fvec
-                        query = candidate
                     if scd_machine is not None:
                         assert scd_key is not None
                         new_scd = candidate_fvec.as_dict[scd_key]
                         scd_machine.advance_mutation(mutation_pos, mutation_to, new_scd)
-                        new_scd_machine = scd_machine.shallow_clone()
+                        new_scd_machine = scd_machine.clone(shallow=True)
+                        mutation_from = old_candidate[mutation_pos]
                     else:
                         new_scd_machine = None
+                    if next_dist_to_tgt > candidate_dist_to_tgt:
+                        next_dist_to_tgt = candidate_dist_to_tgt
+                        query_fvec = candidate_fvec
+                        query = candidate
+                        best_machine = new_scd_machine
                     new_candidates.append((candidate, new_scd_machine))
                 all_candidates.extend(new_candidates)
+                if scd_machine is not None:
+                    scd_machine.clone_from(best_machine, shallow=True)
             iteration += 1
             yield {
                 **query_fvec.as_dict,
@@ -218,7 +224,7 @@ class ScdMachine:
         scd_delta = 0
         for i in self.charged_res:
             charge_at_i = CHARGE[sequence[i]]
-            scd_delta = ch_delta * charge_at_i * sqrt(abs(self.mutation_pos - i))
+            scd_delta += ch_delta * charge_at_i * sqrt(abs(self.mutation_pos - i))
         return self.previous_scd + scd_delta / len(sequence)
     def mock_mutation(self, mutation_from: str, mutation_pos: int):
         """
@@ -239,14 +245,28 @@ class ScdMachine:
         else:
             self.charged_res.add(mutation_pos)
         self.previous_scd = scd
-    def shallow_clone(self):
-        return ScdMachine(self.previous_scd, self.charged_res, self.mutation_from, self.mutation_pos)
-    def clone(self):
-        """Deepcopy."""
-        return ScdMachine(self.previous_scd, copy(self.charged_res), self.mutation_from, self.mutation_pos)
-    def clone_from(self, other):
-        """Deepcopy from other into self."""
+    def clone(self, *, shallow: bool = False):
+        """
+        Return a copy of self.
+        
+        The `shallow` parameter (bool) indicates a shallow copy if true
+        and otherwise indicates a deepcopy.
+        """
+        return_value = ScdMachine(self.previous_scd, self.charged_res, self.mutation_from, self.mutation_pos)
+        if shallow:
+            return_value.charged_res = copy(self.charged_res)
+        return return_value
+    def clone_from(self, other, *, shallow: bool = False):
+        """
+        Write all the data of `other` into self.
+        
+        The `shallow` parameter (bool) indicates a shallow copy if true
+        and otherwise indicates a deepcopy.
+        """
         self.previous_scd = other.previous_scd
-        self.charged_res = copy(other.charged_res)
+        if shallow:
+            self.charged_res = other.charged_res
+        else:
+            self.charged_res = copy(other.charged_res)
         self.mutation_from = other.mutation_from
         self.mutation_pos = other.mutation_pos

@@ -123,10 +123,10 @@ def main():
         featurizer, errors = compile_featurizer(config)
     else:
         featurizer, errors = compile_native_featurizer()
-    if featurizer.keys() != metric.weights.as_dict.keys():
-        raise RuntimeError("featurizer and metric feature vector `%s` have different features" % args.weights_feature_vector)
     for featname, error in errors.items():
         print("error compiling `%s`: %s" % (featname, error), file=sys.stderr)    
+    if featurizer.keys() != metric.weights.as_dict.keys():
+        raise RuntimeError("featurizer and metric feature vector `%s` have different features" % args.weights_feature_vector)
     LENGTH_THRESHOLD = 30
     SEED_COLNAME = "Seed"
     MAX_SEED = 2 ** 64
