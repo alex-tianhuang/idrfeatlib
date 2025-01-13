@@ -397,7 +397,7 @@ def pattern_match_span(
         The regex pattern to determine the length of.
     """
     return sum(
-        right - left for right, left in map(re.Match.span, re.finditer(pattern, sequence))
+        right - left for left, right in map(re.Match.span, re.finditer(pattern, sequence))
     )
 
 def repeats_minus_expected(
@@ -459,7 +459,7 @@ def repeats_minus_expected(
                     * ((2 * (len(sequence) - 1))
                         - ((len(sequence) - 2) * residue_frequency))
     return sum(
-        right - left for right, left in map(re.Match.span, re.finditer(repeat_pattern, sequence))
+        right - left for left, right in map(re.Match.span, re.finditer(repeat_pattern, sequence))
     ) - expected_span 
 
 def log_ratio(
