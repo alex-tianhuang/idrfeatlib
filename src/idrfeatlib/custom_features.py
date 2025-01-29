@@ -18,6 +18,7 @@ def compile_custom_featurizer(features_dict):
         "my-script-feature": {
             "libpath": "my-script-path.py",
             "funcname": "compute",
+            "compute": "custom",
             "kwargs": {
                 "kw_a": 5
             }
