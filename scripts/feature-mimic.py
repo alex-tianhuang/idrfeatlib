@@ -132,7 +132,8 @@ def main():
     MAX_SEED = 2 ** 64
     CONVERGENCE_THRESHOLD = 1e-4
     GOOD_MOVES_THRESHOLD = 3
-    designer = FeatureDesigner(featurizer, metric, covergence_threshold=CONVERGENCE_THRESHOLD, good_moves_threshold=GOOD_MOVES_THRESHOLD, rng=random.Random())
+    DECENT_MOVES_THRESHOLD = 5
+    designer = FeatureDesigner(featurizer, metric, covergence_threshold=CONVERGENCE_THRESHOLD, good_moves_threshold=GOOD_MOVES_THRESHOLD, decent_moves_threshold=DECENT_MOVES_THRESHOLD, rng=random.Random())
     
     fa = Fasta.load(args.input_sequences)
     Fasta.assume_unique = True
