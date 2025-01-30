@@ -30,11 +30,15 @@ import typing
 
 __all__ = ["FeatureVector"]
 
+
 class FeatureVector:
     """A dict with arithmetic ops. The `as_dict` attribute contains the underlying data."""
+
     as_dict: typing.Dict[str, float]
+
     def __init__(self, data: typing.Dict[str, float]):
         self.as_dict = data
+
     def __add__(self, other) -> "FeatureVector":
         if isinstance(other, dict):
             other = FeatureVector(other)
@@ -44,6 +48,7 @@ class FeatureVector:
         for featname, value in self.as_dict.items():
             return_value[featname] = value + other.as_dict[featname]
         return FeatureVector(return_value)
+
     def __iadd__(self, other):
         if isinstance(other, dict):
             other = FeatureVector(other)
@@ -51,68 +56,94 @@ class FeatureVector:
             raise TypeError("cannot add %s to FeatureVector" % type(other).__name__)
         for featname in self.as_dict.keys():
             self.as_dict[featname] += other.as_dict[featname]
+
     def __sub__(self, other) -> "FeatureVector":
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot subtract %s from FeatureVector" % type(other).__name__)
+            raise TypeError(
+                "cannot subtract %s from FeatureVector" % type(other).__name__
+            )
         return_value = {}
         for featname, value in self.as_dict.items():
             return_value[featname] = value - other.as_dict[featname]
         return FeatureVector(return_value)
+
     def __isub__(self, other):
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot subtract %s from FeatureVector" % type(other).__name__)
+            raise TypeError(
+                "cannot subtract %s from FeatureVector" % type(other).__name__
+            )
         for featname in self.as_dict.keys():
             self.as_dict[featname] -= other.as_dict[featname]
+
     def __mul__(self, other) -> "FeatureVector":
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot multiply FeatureVector with %s" % type(other).__name__)
+            raise TypeError(
+                "cannot multiply FeatureVector with %s" % type(other).__name__
+            )
         return_value = {}
         for featname, value in self.as_dict.items():
             return_value[featname] = value * other.as_dict[featname]
         return FeatureVector(return_value)
+
     def __imul__(self, other):
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot multiply FeatureVector with %s" % type(other).__name__)
+            raise TypeError(
+                "cannot multiply FeatureVector with %s" % type(other).__name__
+            )
         for featname in self.as_dict.keys():
             self.as_dict[featname] *= other.as_dict[featname]
+
     def __truediv__(self, other) -> "FeatureVector":
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot divide FeatureVector with %s" % type(other).__name__)
+            raise TypeError(
+                "cannot divide FeatureVector with %s" % type(other).__name__
+            )
         return_value = {}
         for featname, value in self.as_dict.items():
             return_value[featname] = value / other.as_dict[featname]
         return FeatureVector(return_value)
+
     def __itruediv__(self, other):
         if isinstance(other, dict):
             other = FeatureVector(other)
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot divide FeatureVector with %s" % type(other).__name__)
+            raise TypeError(
+                "cannot divide FeatureVector with %s" % type(other).__name__
+            )
         for featname in self.as_dict.keys():
             self.as_dict[featname] /= other.as_dict[featname]
+
     def __eq__(self, other):
         if not isinstance(other, FeatureVector):
-            raise TypeError("cannot compare FeatureVector with %s" % type(other).__name__)
+            raise TypeError(
+                "cannot compare FeatureVector with %s" % type(other).__name__
+            )
         return self.as_dict == other.as_dict
+
     def shape_eq(self, other: "FeatureVector"):
         return self.as_dict.keys() == other.as_dict.keys()
+
     def map_values(self, func) -> "FeatureVector":
         """Applies `func` to values of the feature vector."""
         return_value = {
             featname: func(value) for featname, value in self.as_dict.items()
         }
         return FeatureVector(return_value)
+
     @staticmethod
-    def cmv(feature_vectors: typing.Iterable["FeatureVector"]) -> typing.Tuple["FeatureVector", "FeatureVector", "FeatureVector"]:
+    def cmv(
+        feature_vectors: typing.Iterable["FeatureVector"],
+    ) -> typing.Tuple["FeatureVector", "FeatureVector", "FeatureVector"]:
         """
         Returns a Count, Mean, Variance (hence the name `cmv`) tuple from the iterable of feature vectors.
 
@@ -129,8 +160,13 @@ class FeatureVector:
         mean = FeatureVector(sum) / FeatureVector(count)
         var = FeatureVector(sum_sqr) / FeatureVector(count) - mean * mean
         return FeatureVector(count), mean, var
+
     @staticmethod
-    def dump(feature_vectors: typing.List[typing.Tuple[typing.Any, "FeatureVector"]], path: str, label_names: typing.Any = "label"):
+    def dump(
+        feature_vectors: typing.List[typing.Tuple[typing.Any, "FeatureVector"]],
+        path: str,
+        label_names: typing.Any = "label",
+    ):
         """
         Save labelled feature vectors to csv.
 
@@ -143,6 +179,7 @@ class FeatureVector:
         and `label_names` is expected to be a n-tuple of strings (e.g. ("label1", "label2", etc.))
         """
         import csv
+
         if not (isinstance(label_names, str) or isinstance(label_names, tuple)):
             raise TypeError("`label_names` must be a string or n-tuple of strings")
         if not feature_vectors:
@@ -167,24 +204,24 @@ class FeatureVector:
             writer = csv.DictWriter(file, fieldnames=colnames)
             writer.writeheader()
             for label, fvec in feature_vectors:
-                
                 if isinstance(label_names, str):
-                    assert isinstance(label, str), "if `label_names` is a string, `feature_vectors` should look like this: [(key, featvec)]"
-                    writer.writerow({
-                        **fvec.as_dict,
-                        label_names: label
-                    })
+                    assert isinstance(
+                        label, str
+                    ), "if `label_names` is a string, `feature_vectors` should look like this: [(key, featvec)]"
+                    writer.writerow({**fvec.as_dict, label_names: label})
                 else:
-                    row = {
-                        **fvec.as_dict
-                    }
-                    assert isinstance(label, tuple) and len(label) == len(label_names), "if `label_names` is a tuple, `feature_vectors` should look like this: [((key1, key2, ...), featvec)]"
+                    row = {**fvec.as_dict}
+                    assert (
+                        isinstance(label, tuple) and len(label) == len(label_names)
+                    ), "if `label_names` is a tuple, `feature_vectors` should look like this: [((key1, key2, ...), featvec)]"
                     for sublabel, label_name in zip(label, label_names):
                         row[label_name] = sublabel
                     writer.writerow(row)
-                
+
     @staticmethod
-    def load(path: str, labels: typing.Any = None) -> typing.Iterator[typing.Tuple[typing.Any, "FeatureVector"]]:
+    def load(
+        path: str, labels: typing.Any = None
+    ) -> typing.Iterator[typing.Tuple[typing.Any, "FeatureVector"]]:
         """
         Load feature vectors from csv (as an iterator).
 
@@ -197,12 +234,13 @@ class FeatureVector:
         If `labels` is None, left-type are strings corresponding to the first column of the csv.
         If `labels` is a string, the left-type are strings corresponding to that column of the csv.
         If `labels` is a tuple of strings, the left-type are string tuples corresponding to those columns of the csv.
-        
+
         Example
         -------
         fvecs = list(FeatureVector.load("some_fvecs.csv"))
         """
         import csv
+
         with open(path, "r") as file:
             reader = csv.DictReader(file)
             if labels is None:
@@ -212,17 +250,32 @@ class FeatureVector:
             if isinstance(labels, tuple):
                 for row in reader:
                     label_tuple = tuple(row.pop(column) for column in labels)
-                    yield label_tuple, FeatureVector({
-                        featname: float(value) for featname, value in row.items() if value
-                    })
+                    yield (
+                        label_tuple,
+                        FeatureVector(
+                            {
+                                featname: float(value)
+                                for featname, value in row.items()
+                                if value
+                            }
+                        ),
+                    )
             else:
                 for row in reader:
                     label = row.pop(labels)
-                    yield label, FeatureVector({
-                        featname: float(value) for featname, value in row.items() if value
-                    })
-                
+                    yield (
+                        label,
+                        FeatureVector(
+                            {
+                                featname: float(value)
+                                for featname, value in row.items()
+                                if value
+                            }
+                        ),
+                    )
+
     def __repr__(self) -> str:
         return "FeatureVector(%s)" % repr(self.as_dict)
+
     def __str__(self) -> str:
-        return "FeatureVector(featdim=%d)" % len(self.as_dict)               
+        return "FeatureVector(featdim=%d)" % len(self.as_dict)

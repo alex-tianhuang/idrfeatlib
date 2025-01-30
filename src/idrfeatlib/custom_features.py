@@ -34,22 +34,28 @@ def compile_custom_featurizer(features_dict):
     import os
     import runpy
     import functools
+
     return_value = {}
     runpy_results = {}
     errors = {}
     for featname, feature_params in features_dict.items():
-
         if (libpath := feature_params.get("libpath")) is None:
-            errors[featname] = ValueError("feature needs a script path as a `libpath` field")
+            errors[featname] = ValueError(
+                "feature needs a script path as a `libpath` field"
+            )
             continue
         if not isinstance(libpath, str):
             errors[featname] = TypeError("expected a script path string at `libpath`")
             continue
         if (funcname := feature_params.get("funcname")) is None:
-            errors[featname] = ValueError("feature needs a function name as a `funcname` field")
+            errors[featname] = ValueError(
+                "feature needs a function name as a `funcname` field"
+            )
             continue
         if not isinstance(funcname, str):
-            errors[featname] = ValueError("expected a function name string as a `funcname` field")
+            errors[featname] = ValueError(
+                "expected a function name string as a `funcname` field"
+            )
             continue
         keypath = os.path.realpath(libpath)
         if (module_or_error := runpy_results.get(keypath)) is None:
@@ -63,7 +69,9 @@ def compile_custom_featurizer(features_dict):
             continue
         module = module_or_error
         if (func := module.get(funcname)) is None:
-            errors[featname] = RuntimeError("No function `%s` in module at `%s`" % (funcname, libpath))
+            errors[featname] = RuntimeError(
+                "No function `%s` in module at `%s`" % (funcname, libpath)
+            )
             continue
         if (kwargs := feature_params.get("kwargs")) is None:
             kwargs = {}
