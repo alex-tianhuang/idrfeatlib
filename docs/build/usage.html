@@ -1,0 +1,265 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage &mdash; idrfeatlib  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Native Features" href="native-features.html" />
+    <link rel="prev" title="idrfeatlib documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            idrfeatlib
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#computing-metric">Computing Metric</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-custom-features">Using custom features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feature-mimic-design">Feature mimic design</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="native-features.html">Native Features</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">idrfeatlib</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p>Welcome to <code class="docutils literal notranslate"><span class="pre">idrfeatlib</span></code>, my fifth attempt at making a usable IDR feature analysis
+library. This is an internal library, so I feel free to say that I am sorry
+if you find yourself ever in need of using my code as a dependency.</p>
+<section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h1>
+<section id="installation">
+<span id="id1"></span><h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>To use this <code class="docutils literal notranslate"><span class="pre">idrfeatlib</span></code> package,
+pip install the <a class="reference external" href="https://github.com/alex-tianhuang/benchstuff">benchstuff package</a>.</p>
+<p>Then install the idrfeatlib package from github:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/alex-tianhuang/benchstuff
+<span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>./benchstuff
+<span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/alex-tianhuang/idrfeatlib
+<span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>./idrfeatlib
+</pre></div>
+</div>
+<p>You probably also should install <a class="reference external" href="https://pypi.org/project/tqdm/">tqdm</a>,
+as it is not a dependency of the libraries, but most of my scripts use it.
+It is a progress bar library.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>tqdm
+</pre></div>
+</div>
+<p>If you have <code class="docutils literal notranslate"><span class="pre">tqdm</span></code>, you can check that the installation worked by running
+a basic IDR feature calculation script on some example fasta &#64; <cite>test.fa</cite>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>./idrfeatlib/scripts/featurize.py<span class="w"> </span>test.fa<span class="w"> </span>/dev/stdout
+</pre></div>
+</div>
+</section>
+<section id="computing-metric">
+<span id="id2"></span><h2>Computing Metric<a class="headerlink" href="#computing-metric" title="Link to this heading"></a></h2>
+<p>Follow this section to compute the mean and weights associated with either
+(a) An input fasta file of IDRs or
+(b) An input fasta file of proteins + a csv of IDR regions</p>
+<p>(a)
+Suppose I have an input fasta file of IDRs &#64; <cite>IDR_FILE.fasta</cite>.
+I will run the following:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/featurize.py<span class="w"> </span>IDR_FILE.fasta<span class="w"> </span>OUTPUT_FEATURES.csv
+<span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/compute-metric.py<span class="w"> </span>OUTPUT_FEATURES.csv<span class="w"> </span>OUTPUT_ORIGIN_WEIGHTS.csv
+</pre></div>
+</div>
+<p>(b)
+Suppose I have an input fasta file of proteins &#64; <cite>PROTEINS.fasta</cite> + csv of IDR regions &#64; <cite>IDRS.csv</cite>.
+The csv of IDR regions looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ProteinID</span><span class="p">,</span><span class="n">RegionID</span><span class="p">,</span><span class="n">Start</span><span class="p">,</span><span class="n">Stop</span>
+<span class="n">DDX3X</span><span class="p">,</span><span class="n">N</span><span class="o">-</span><span class="n">IDR</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">142</span>
+<span class="n">protein_x</span><span class="p">,</span><span class="n">region3</span><span class="p">,</span><span class="mi">24</span><span class="p">,</span><span class="mi">72</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>I can then run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/featurize.py<span class="w"> </span>PROTEINS.fasta<span class="w"> </span>--input-regions<span class="w"> </span>IDRS.csv<span class="w"> </span>OUTPUT_FEATURES.csv
+<span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/compute-metric.py<span class="w"> </span>OUTPUT_FEATURES.csv<span class="w"> </span>OUTPUT_ORIGIN_WEIGHTS.csv<span class="w"> </span>--input-labels<span class="w"> </span>ProteinID<span class="w"> </span>RegionID
+</pre></div>
+</div>
+</section>
+<section id="using-custom-features">
+<h2>Using custom features<a class="headerlink" href="#using-custom-features" title="Link to this heading"></a></h2>
+<p>Follow this section to add your own features.</p>
+<p>Suppose I have a script &#64; <cite>FOO.py</cite>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">bar</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">secret_param</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span> <span class="o">+</span> <span class="n">secret_param</span>
+</pre></div>
+</div>
+<p>To add this feature to the available features, begin by copying the
+<a class="reference internal" href="native-features.html"><span class="doc">native features</span></a> into a custom file <cite>MY_FEATURES.json</cite>.
+It should look something like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;features&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;AA_A&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;compute&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percent_residue&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;residue&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;AA_B&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;...&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="s2">&quot;...&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In the <code class="docutils literal notranslate"><span class="pre">features</span></code> section of that json, add this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;features&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;my_feature&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;compute&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;custom&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;libpath&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;FOO.py&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;funcname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bar&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;kwargs&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;secret_param&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;AA_A&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;compute&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;percent_residue&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;residue&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A&quot;</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;AA_B&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;...&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="s2">&quot;...&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Now, in subsequent analyses, add <code class="docutils literal notranslate"><span class="pre">--feature-file</span> <span class="pre">MY_FEATURES.json</span></code> to the end of every command.
+For example, featurize a fasta file like so:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/featurize.py<span class="w"> </span>IDR_FILE.fasta<span class="w"> </span>OUTPUT_FEATURES.csv<span class="w"> </span>--feature-file<span class="w"> </span>MY_FEATURES.json
+</pre></div>
+</div>
+</section>
+<section id="feature-mimic-design">
+<h2>Feature mimic design<a class="headerlink" href="#feature-mimic-design" title="Link to this heading"></a></h2>
+<p>To design sequences, you’ll need a weights file (see <a class="reference internal" href="#computing-metric"><span class="std std-ref">Computing Metric</span></a>).</p>
+<p>Suppose you have such a file &#64; <cite>WEIGHTS.csv</cite>, which roughly looks like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Label</span><span class="p">,</span><span class="n">Feature1</span><span class="p">,</span><span class="n">Feature2</span><span class="p">,</span><span class="o">...</span>
+<span class="n">origin</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="o">...</span>
+<span class="n">weights</span><span class="p">,</span><span class="mf">0.25</span><span class="p">,</span><span class="mf">0.78</span><span class="p">,</span><span class="o">...</span>
+</pre></div>
+</div>
+<p>Use this to design on a protein fasta file + input regions csv like so:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/feature-mimic.py<span class="w"> </span>PROTEINS.fa<span class="w"> </span>--input-regions<span class="w"> </span>REGIONS.csv<span class="w"> </span>WEIGHTS.csv<span class="w"> </span>DESIGN_OUTPUT.csv
+</pre></div>
+</div>
+<p>Some helpful options are:</p>
+<p><code class="docutils literal notranslate"><span class="pre">--n-random</span></code></p>
+<blockquote>
+<div><p>Design this many replicates starting with random sequences.
+e.g. if you want to design 10 sequences per region:</p>
+</div></blockquote>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/feature-mimic.py<span class="w"> </span>PROTEINS.fa<span class="w"> </span>--input-regions<span class="w"> </span>REGIONS.csv<span class="w"> </span>WEIGHTS.csv<span class="w"> </span>DESIGN_OUTPUT.csv<span class="w"> </span>--n-random<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--num-processes</span></code> or <code class="docutils literal notranslate"><span class="pre">-np</span></code></p>
+<blockquote>
+<div><p>Use this many processes.
+If this number is greater than 1 (not default), you will need to install <code class="docutils literal notranslate"><span class="pre">pathos</span></code> and <code class="docutils literal notranslate"><span class="pre">tqdm_pathos</span></code>.
+<code class="docutils literal notranslate"><span class="pre">pathos</span></code> is a multiprocessing library that is superior to the standard <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code> library
+(uses <code class="docutils literal notranslate"><span class="pre">dill</span></code> for pickling, and therefore doesn’t fail all the time)
+<code class="docutils literal notranslate"><span class="pre">tqdm_pathos</span></code> makes a shared-process progress bar.</p>
+<p>e.g. to use 8 processes:</p>
+</div></blockquote>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(.venv)</span> <span class="gp">$ </span>python<span class="w"> </span>scripts/feature-mimic.py<span class="w"> </span>PROTEINS.fa<span class="w"> </span>--input-regions<span class="w"> </span>REGIONS.csv<span class="w"> </span>WEIGHTS.csv<span class="w"> </span>DESIGN_OUTPUT.csv<span class="w"> </span>-np<span class="w"> </span><span class="m">8</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--seeds-file</span></code></p>
+<blockquote>
+<div><p>Design sequences starting with seeded random sequences.
+Seeds are provided in a <cite>SEEDS.csv</cite> file, which has columns “ProteinID” (and “RegionID” if <code class="docutils literal notranslate"><span class="pre">--input-regions</span></code> is specified)
+and a “Seed” column with integer seeds. Can be multiple seeds for one protein/region.</p>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="idrfeatlib documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="native-features.html" class="btn btn-neutral float-right" title="Native Features" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alex Huang (@alex-tianhuang).</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
