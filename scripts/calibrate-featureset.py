@@ -100,7 +100,7 @@ def main():
             else:
                 count = featvalue
             pattern = feature["pattern"]
-            if (denominator := len(seq) - len(pattern.pattern)) <= 0:
+            if (denominator := len(seq) - len(pattern)) <= 0:
                 continue
             running_sums[i] += count / denominator
             running_counts[i] += 1
