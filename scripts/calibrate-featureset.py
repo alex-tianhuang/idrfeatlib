@@ -37,7 +37,12 @@ def main():
             config = json.load(file)
         featurizer, errors = compile_native_featurizer(config)
     for featname, error in errors.items():
-        print("error compiling `%s`: %s" % (featname, error), file=sys.stderr)        
+        print("error compiling `%s`: %s" % (featname, error), file=sys.stderr)
+    for featname, feature in config["features"].items():
+        if (compute := feature.get("compute")) is None:
+            continue
+        if compute != "count":
+            _ = featurizer.pop(featname, None)
     featurizer = Featurizer(featurizer)
     fa = Fasta.load(args.input_sequences)
     if args.input_regions is None:
