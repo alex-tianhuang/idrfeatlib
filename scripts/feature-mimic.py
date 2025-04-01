@@ -9,14 +9,16 @@ def parse_args():
     inputs.add_argument("--weights-feature-vector", required=False, default="weights", help="label attached to the weights feature vector")
     inputs.add_argument("--input-regions", required=False, help="region boundaries in csv (`ProteinID`, `RegionID`, `Start`, `Stop`) format")
     parser.add_argument("output_file", help="output csv file with columns (`ProteinID`, `RegionID`, `DesignID`, `Sequence`, ...)")
-    rng_seed = parser.add_mutually_exclusive_group()
-    rng_seed.add_argument("--n-random", type=int, help="sample this many random query sequences per region")
-    rng_seed.add_argument("--seeds-file", help="input csv with (`ProteinId`, `RegionID`, `Seed` | `DesignID`) format")
+    seed_args = parser.add_mutually_exclusive_group()
+    seed_args.add_argument("--n-random", type=int, help="sample this many random query sequences per region")
+    seed_args.add_argument("--seeds-file", help="input csv with (`ProteinID`, `RegionID`, `Seed` | `DesignID`) format")
+    seed_args.add_argument("--query-file", help="csv full of query sequences (in column `Sequence`), labelled by `ProteinID`, `DesignID` (and `RegionID` if applicable)")
     parser.add_argument("--feature-file", required=False, help="feature configuration json")
     parser.add_argument("--keep-trajectory", action="store_true", help="when set, save every iteration of the design loop")
     parser.add_argument("--save-seed", action="store_true", help="when set, store the seed in a `Seed` column")
     parser.add_argument("--design-id", required=False, default="{counter}", help="string to format the design id. default is to use a counter")
     parser.add_argument("-np", "--n-processes", type=int, required=False, default=1, help="number of processes. requires libraries: pathos + tqdm_pathos")
+    parser.add_argument("--greedy", action="store_true", help="use a greedy optimization algorithm instead of the default fast one.")
     return parser.parse_args()
 
 def init_subprocess(stderr_lock, output_lock):
@@ -99,12 +101,12 @@ def design_all(num_processes, tasks):
 
 def main():
     args = parse_args()
-    from benchstuff import Fasta, Regions, RegionsDict, ProteinDict
+    from benchstuff import Fasta, Regions, RegionsDict, ProteinDict, PvariantsDict, DesignDict
     from idrfeatlib import FeatureVector
     from idrfeatlib.featurizer import compile_featurizer
     from idrfeatlib.native import compile_native_featurizer
     from idrfeatlib.metric import Metric
-    from idrfeatlib.designer import FeatureDesigner
+    from idrfeatlib.designer import FeatureDesigner, GreedyFeatureDesigner
     import os
     import json
     import sys
@@ -133,41 +135,58 @@ def main():
     CONVERGENCE_THRESHOLD = 1e-4
     GOOD_MOVES_THRESHOLD = 3
     DECENT_MOVES_THRESHOLD = 5
-    designer = FeatureDesigner(featurizer, metric, covergence_threshold=CONVERGENCE_THRESHOLD, good_moves_threshold=GOOD_MOVES_THRESHOLD, decent_moves_threshold=DECENT_MOVES_THRESHOLD, rng=random.Random())
+    QUERY_COLNAME = "Sequence"
+    if args.greedy:
+        designer = GreedyFeatureDesigner(featurizer, metric, convergence_threshold=CONVERGENCE_THRESHOLD)
+        designer.rng = random.Random() # type: ignore
+    else:
+        designer = FeatureDesigner(featurizer, metric, covergence_threshold=CONVERGENCE_THRESHOLD, good_moves_threshold=GOOD_MOVES_THRESHOLD, decent_moves_threshold=DECENT_MOVES_THRESHOLD, rng=random.Random())
     
     fa = Fasta.load(args.input_sequences)
     Fasta.assume_unique = True
     tasks = []
     colnames = ["ProteinID"]
     featnames = featurizer.keys()
+    
     if args.input_regions is None:
-        colnames += ["DesignID", "Time", "Sequence"]
+        colnames += ["DesignID", "Sequence", "Time"]
         if args.save_seed:
             colnames.append("Seed")
         if args.keep_trajectory:
             colnames.append("Iteration")
         colnames += featnames
         fa = fa.filter(lambda _, seq: len(seq) >= LENGTH_THRESHOLD)
-        if args.seeds_file is None:
-            n_random = args.n_random or 1
-            rng = random.Random()
-            seeds = fa.to_protein_dict().map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+        if args.query_file is None:
+            if args.seeds_file is None:
+                n_random = args.n_random or 1
+                rng = random.Random()
+                seeds = fa.to_protein_dict().map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+            else:
+                seeds = ProteinDict.load(args.seeds_file, assume_unique=False)
+                seeds = seeds.filter(lambda protid, _: protid in fa).map_values(lambda row: row[SEED_COLNAME])
+            for protid, prot_seeds in seeds:
+                if (entry := fa.get(protid)) is None:
+                    continue
+                _, target = entry
+                assert isinstance(target, str)
+                for counter, seed in enumerate(prot_seeds):
+                    seed = int(seed)
+                    design_id = args.design_id.format(counter=counter, seed=seed, proteinid=protid)
+                    tasks.append(
+                        (None, target, protid, None, design_id, seed, designer, colnames, args)
+                    )
         else:
-            seeds = ProteinDict.load(args.seeds_file, assume_unique=False)
-            seeds = seeds.filter(lambda protid, _: protid in fa).map_values(lambda row: row[SEED_COLNAME])
-        for protid, prot_seeds in seeds:
-            if (entry := fa.get(protid)) is None:
-                continue
-            _, target = entry
-            assert isinstance(target, str)
-            for counter, seed in enumerate(prot_seeds):
-                seed = int(seed)
-                design_id = args.design_id.format(counter=counter, seed=seed, proteinid=protid)
+            qries = PvariantsDict.load(args.query_file)
+            for protid, designid, row in qries.iter_nested():
+                if (entry := fa.get(protid)) is None:
+                    continue
+                _, target = entry
+                query = row[QUERY_COLNAME]
                 tasks.append(
-                    (None, target, protid, None, design_id, seed, designer, colnames, args)
+                    (query, target, protid, None, designid, None, designer, colnames, args)
                 )
     else:
-        colnames += ["RegionID", "DesignID", "Time", "Sequence"]
+        colnames += ["RegionID", "DesignID", "Sequence", "Time"]
         if args.save_seed:
             colnames.append("Seed")
         if args.keep_trajectory:
@@ -175,28 +194,45 @@ def main():
         colnames += featnames
         regions, _ = Regions.load(args.input_regions)
         regions = regions.filter(lambda _p, _r, region: region.len() >= LENGTH_THRESHOLD)
-        if args.seeds_file is None:
-            n_random = args.n_random or 1
-            rng = random.Random()
-            seeds = regions.map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+        if args.query_file is None:
+            if args.seeds_file is None:
+                n_random = args.n_random or 1
+                rng = random.Random()
+                seeds = regions.map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+            else:
+                seeds = RegionsDict.load(args.seeds_file, assume_unique=False)
+                seeds = seeds.filter(lambda protid, regionid, _: regionid in (regions.get(protid) or {}))
+            for protid, regionid, region_seeds in seeds.iter_nested():
+                if (entry := fa.get(protid)) is None:
+                    continue
+                _, target_whole = entry
+                assert isinstance(target_whole, str)
+                start, stop = regions[protid][regionid] 
+                target = target_whole[start:stop]
+                if len(target) != stop - start:
+                    print("invalid region `%s` for protein `%s` (start=%d,stop=%d,seqlen=%s)" % (regionid, protid, start, stop, len(target_whole)))
+                    continue
+                for counter, seed in enumerate(region_seeds):
+                    seed = int(seed)
+                    design_id = args.design_id.format(counter=counter, seed=seed, proteinid=protid, regionid=regionid, start=start, stop=stop)
+                    tasks.append(
+                        (None, target, protid, regionid, design_id, seed, designer, colnames, args)
+                    )
         else:
-            seeds = RegionsDict.load(args.seeds_file, assume_unique=False)
-            seeds = seeds.filter(lambda protid, regionid, _: regionid in (regions.get(protid) or {}))
-        for protid, regionid, region_seeds in seeds.iter_nested():
-            if (entry := fa.get(protid)) is None:
-                continue
-            _, target_whole = entry
-            assert isinstance(target_whole, str)
-            start, stop = regions[protid][regionid] 
-            target = target_whole[start:stop]
-            if len(target) != stop - start:
-                print("invalid region `%s` for protein `%s` (start=%d,stop=%d,seqlen=%s)" % (regionid, protid, start, stop, len(target_whole)))
-                continue
-            for counter, seed in enumerate(region_seeds):
-                seed = int(seed)
-                design_id = args.design_id.format(counter=counter, seed=seed, proteinid=protid, regionid=regionid, start=start, stop=stop)
+            qries = DesignDict.load(args.query_file)
+            for protid, regionid, designid, row in qries.iter_nested():
+                if (entry := fa.get(protid)) is None:
+                    continue
+                _, target_whole = entry
+                assert isinstance(target_whole, str)
+                start, stop = regions[protid][regionid] 
+                target = target_whole[start:stop]
+                if len(target) != stop - start:
+                    print("invalid region `%s` for protein `%s` (start=%d,stop=%d,seqlen=%s)" % (regionid, protid, start, stop, len(target_whole)))
+                    continue
+                query = row[QUERY_COLNAME]
                 tasks.append(
-                    (None, target, protid, regionid, design_id, seed, designer, colnames, args)
+                    (query, target, protid, regionid, designid, None, designer, colnames, args)
                 )
     if not os.path.exists(args.output_file):
         with open(args.output_file, "w") as file:
