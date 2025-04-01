@@ -128,7 +128,7 @@ class FeatureDesigner:
                         assert scd_key is not None
                         new_scd = candidate_fvec.as_dict[scd_key]
                         scd_machine.advance_mutation(mutation_pos, mutation_to, new_scd)
-                        new_scd_machine = scd_machine.clone(shallow=True)
+                        new_scd_machine = scd_machine.clone(shallow=False)
                         mutation_from = old_candidate[mutation_pos]
                     else:
                         new_scd_machine = None
@@ -225,7 +225,117 @@ class FeatureDesigner:
         mutations.update({pos: aa for pos, (aa, _) in good_mutation_dists.items()})
         return list(mutations.items())
 
+class GreedyFeatureDesigner:
+    """Greedy feature mimic design algorithm."""
 
+    def __init__(
+        self,
+        featurizer: typing.Dict[str, typing.Callable[..., float]],
+        metric: Metric,
+        convergence_threshold: float,
+    ) -> None:
+        self.featurizer = featurizer
+        self.metric = metric
+        self.convergence_threshold = convergence_threshold
+
+    def design_loop(
+        self, query: str, acceptable_errors=(ArithmeticError, ValueError, KeyError)
+    ):
+        """
+        Optimize a query sequence to fit the feature vector at `self.metric.origin`.
+
+        Parameters
+        ----------
+        query : str
+            The starting sequence to generate designs off of by iterative mutation.
+        """
+        query_fvec, _ = Featurizer(self.featurizer).featurize(
+            query, acceptable_errors=()
+        )
+
+        scd_machine = None
+        scd_key = None
+        featurizer = self.featurizer
+
+        for featname, feature in list(self.featurizer.items()):
+            if feature is scd:
+                if scd_machine is None:
+                    featurizer = copy(self.featurizer)
+                    previous_scd = query_fvec.as_dict[featname]
+                    charged_res = set()
+                    for i, aa in enumerate(query):
+                        if aa in CHARGE:
+                            charged_res.add(i)
+                    mutation_from = ""  # placeholder for string type
+                    mutation_pos = len(query)  # should throw error if used
+                    scd_machine = ScdMachine(
+                        previous_scd, charged_res, mutation_from, mutation_pos
+                    )
+                    scd_key = featname
+                featurizer[featname] = scd_machine.compute_scd
+                
+
+        featurizer = Featurizer(featurizer)
+
+        curr_dist_to_tgt: float = self.metric.euclidean_norm_of(query_fvec)
+        start_time = time()
+        iteration = 0
+        yield {
+            **query_fvec.as_dict,
+            "Iteration": iteration,
+            "Sequence": query,
+            "Time": 0,
+        }
+        next_dist_to_tgt: float = curr_dist_to_tgt
+        curr_dist_to_tgt += self.convergence_threshold + 1
+
+        while curr_dist_to_tgt - next_dist_to_tgt > self.convergence_threshold:
+            curr_dist_to_tgt = next_dist_to_tgt
+            current_seq = query
+            if scd_machine is not None:
+                best_machine = scd_machine.clone(shallow=False)
+            for mutation_pos, mutation_from in enumerate(query):
+                
+                for mutation_to in "ACDEFGHIKLMNPQRSTVWY":
+                    if (
+                        guess := apply_mutation(
+                            current_seq, mutation_pos, mutation_to, scd_machine
+                        )
+                    ) is None:
+                        continue
+                    try:
+                        guess_fvec, _ = featurizer.featurize(guess, acceptable_errors=())
+                    except acceptable_errors:
+                        continue
+                    guess_dist_to_tgt = self.metric.euclidean_norm_of(guess_fvec)
+                    if guess_dist_to_tgt >= next_dist_to_tgt:
+                        continue
+                    if scd_machine is not None:
+                        assert scd_key is not None
+                        new_scd = guess_fvec.as_dict[scd_key]
+                        best_machine = scd_machine.clone(shallow=False)
+                        best_machine.advance_mutation(mutation_pos, mutation_to, new_scd)
+                    query = guess
+                    query_fvec = guess_fvec
+                    next_dist_to_tgt = guess_dist_to_tgt
+                    
+            if scd_machine is not None:
+                scd_machine.clone_from(best_machine, shallow=True)
+            iteration += 1
+            yield {
+                **query_fvec.as_dict,
+                "Iteration": iteration,
+                "Sequence": query,
+                "Time": time() - start_time,
+            }
+
+        yield {
+            **query_fvec.as_dict,
+            "Iteration": "END",
+            "Sequence": query,
+            "Time": time() - start_time,
+        }
+        return query
 CHARGE = {"D": -1, "E": -1, "K": 1, "R": 1}
 
 
@@ -304,7 +414,7 @@ class ScdMachine:
         return_value = ScdMachine(
             self.previous_scd, self.charged_res, self.mutation_from, self.mutation_pos
         )
-        if shallow:
+        if not shallow:
             return_value.charged_res = copy(self.charged_res)
         return return_value
 
