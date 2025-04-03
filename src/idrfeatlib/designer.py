@@ -379,7 +379,13 @@ class ScdMachine:
             return self.previous_scd
         scd_delta = 0
         for i in self.charged_res:
-            charge_at_i = CHARGE[sequence[i]]
+            # ---Apr 3rd, 2025---
+            # @tianh
+            # Nasty silent bug.
+            #
+            # The charged_res describes the previous charged residues,
+            # so a single point mutation may result in this being a key error.
+            charge_at_i = CHARGE.get(sequence[i], 0)
             scd_delta += ch_delta * charge_at_i * sqrt(abs(self.mutation_pos - i))
         return self.previous_scd + scd_delta / len(sequence)
 
