@@ -304,7 +304,7 @@ def compile_native_feature(
                 repeat_pattern=re.compile("[%s]" % residues),
                 residue_frequency=residue_frequency,
             )
-        return partial(pattern_match_span, pattern=re.compile("[%s]" % residues))
+        return partial(repeats_minus_expected, repeat_pattern=re.compile("[%s]" % residues), residue_frequency=0)
 
     if compute == "log_ratio":
         if (num_aa := kwargs.get("numerator")) is None:
@@ -470,6 +470,9 @@ def repeats_minus_expected(
 ) -> float:
     """Calculate the total length spanned by patterns in a target sequence.
 
+    The first residue of every repeat is not counted, to be consistent with
+    previous analysis.
+    
     Parameters
     ----------
     sequence : str
@@ -524,7 +527,7 @@ def repeats_minus_expected(
     )
     return (
         sum(
-            right - left
+            right - left - 1
             for left, right in map(re.Match.span, re.finditer(repeat_pattern, sequence))
         )
         - expected_span
