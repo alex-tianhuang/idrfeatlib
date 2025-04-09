@@ -301,10 +301,10 @@ def compile_native_feature(
             residue_frequency = sum(residue_frequencies.get(aa, 0) for aa in residues)
             return partial(
                 repeats_minus_expected,
-                repeat_pattern=re.compile("[%s]" % residues),
+                repeat_pattern=re.compile("[%s]{2,}" % residues),
                 residue_frequency=residue_frequency,
             )
-        return partial(repeats_minus_expected, repeat_pattern=re.compile("[%s]" % residues), residue_frequency=0)
+        return partial(repeats_minus_expected, repeat_pattern=re.compile("[%s]{2,}" % residues), residue_frequency=0)
 
     if compute == "log_ratio":
         if (num_aa := kwargs.get("numerator")) is None:
