@@ -1,6 +1,7 @@
 from . import FeatureVector
 import typing
 
+__all__ = ["Metric"]
 
 class Metric:
     """Object holding an `origin` and a `weights` vector."""

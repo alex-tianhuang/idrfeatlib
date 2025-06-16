@@ -215,7 +215,7 @@ def compile_native_feature(
             raise TypeError("expected `average` to be True or False")
         if not isinstance(score, dict):
             raise TypeError("expected `score` to be a dict of residue->score pairs")
-        return partial(score_pattern_matches, score=score, average=average)
+        return partial(score_pattern_matches, score={re.compile(pat): value for pat, value in score.items()}, average=average)
 
     if compute == "count":
         if (pattern := kwargs.get("pattern")) is None:
@@ -375,7 +375,7 @@ def score_pattern_matches(
     ------
     If `average` is ``True`` and the provided sequence is empty.
     """
-    result = sum(score * len(re.findall(pat, sequence)) for pat, score in score.items())
+    result = sum(score * len(pat.findall(sequence)) for pat, score in score.items())
     if average:
         return result / len(sequence)
     return result
@@ -403,7 +403,7 @@ def count_pattern_matches(
     ------
     If `average` is ``True`` and the provided sequence is empty.
     """
-    result = len(re.findall(pattern, sequence))
+    result = len(pattern.findall(sequence))
     if average:
         return result / len(sequence)
     return result
@@ -437,7 +437,7 @@ def count_pattern_matches_minus_expected(
     ------
     If `average` is ``True`` and the provided sequence is empty.
     """
-    result = len(re.findall(pattern, sequence))
+    result = len(pattern.findall(sequence))
     result -= pattern_frequency * (len(sequence) - len(pattern.pattern))
     if average:
         return result / len(sequence)
@@ -461,7 +461,7 @@ def pattern_match_span(
     """
     return sum(
         right - left
-        for left, right in map(re.Match.span, re.finditer(pattern, sequence))
+        for left, right in map(re.Match.span, pattern.finditer(sequence))
     )
 
 
@@ -528,7 +528,7 @@ def repeats_minus_expected(
     return (
         sum(
             right - left - 1
-            for left, right in map(re.Match.span, re.finditer(repeat_pattern, sequence))
+            for left, right in map(re.Match.span, repeat_pattern.finditer(sequence))
         )
         - expected_span
     )

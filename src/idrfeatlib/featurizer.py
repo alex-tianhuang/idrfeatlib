@@ -11,7 +11,7 @@ module, or just by constructing your own dict of named function pointers.
 from . import FeatureVector
 import typing
 
-__all__ = ["Featurizer"]
+__all__ = ["Featurizer", "compile_featurizer"]
 
 
 class Featurizer:
