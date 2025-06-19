@@ -6,9 +6,19 @@
 idrfeatlib documentation
 ========================
 
-Welcome to ``idrfeatlib``, my fifth attempt at making a usable IDR feature analysis
-library. This is an internal library, so I feel free to say that I am sorry
-if you find yourself ever in need of using my code as a dependency.
+Welcome to ``idrfeatlib``, the beginnings of a library for feature-based analysis
+of protein sequences. This library is meant to be a highly extensible bioinformatics
+framework for analyzing sequence features, finding novel sequences with similar
+features as some target sequence, and so on.
+
+This project is currently in a somewhat unstable in development phase right now,
+so I would say use this code with the knowledge that even core functionalities
+may be renamed or otherwise changed, at least until I think of a proper versioning
+protocol.
+
+This means: if you include this as a dynamically installed dependency (i.e. Google
+colab `!git clone`), you should point it to a specific branch/version number and
+not just the latest or main branch. 
 
 .. toctree::
    :maxdepth: 2

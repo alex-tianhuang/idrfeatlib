@@ -1,4 +1,5 @@
-"""Script that fills in the expected motif frequencies + the expected aa frequencies,
+"""
+Script that fills in the expected motif frequencies + the expected aa frequencies,
 then puts `subtract_expected` on all "count" and "repeat" features.
 
 Example

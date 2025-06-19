@@ -1,4 +1,10 @@
-"""WIP: Script for designing feature-based mimics."""
+"""
+Script for finding sequences with similar features as those in wild-type sequences.
+
+Example
+-------
+`$ python feature-mimic.py input.fasta --input-regions idr-bounds.csv output.csv`
+"""
 
 def parse_args():
     import argparse

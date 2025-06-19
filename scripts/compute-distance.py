@@ -1,4 +1,7 @@
-"""Compute the distance for each iteration of a designs csv."""
+"""
+Compute the distance for each iteration of a designs csv.
+(see `feature-mimic.py`).
+"""
 
 
 def parse_args():

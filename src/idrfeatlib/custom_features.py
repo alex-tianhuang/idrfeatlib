@@ -1,3 +1,24 @@
+"""
+An interface for including any python function with as a function in the [`Featurizer`].
+
+Whereas a native or builtin feature can be specified in json via something like:
+```
+{
+    "my-count-feature": {
+        "compute": "count",
+        "pattern": "[ILVM]"
+    },
+    "my-lr-feature": {
+        "compute": "log_ratio",
+        "numerator": "N",
+        "denominator": "M"
+    }
+}
+
+You can specify a custom feature by setting `compute=custom`. The required information in
+the rest of the dict is given in the docs for [`compile_custom_featurizer`].
+```
+"""
 def compile_custom_featurizer(features_dict):
     """
     A utility function for specifying custom features in other python scripts.

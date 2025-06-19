@@ -50,7 +50,7 @@ class CompositionMachine:
         Dev note
         --------
         The structure of this function is a little unorthodox because typically Python people like `_private` functions
-        But I prefer local closures defined in the body of the function.
+        But I prefer local closures defined in the body of the function because underscores are ugly.
         
         Most of the function is defining various gradient computing closures for each subtype of feature
         and then bundling them all together in an `autograd_closure_list`, which acts like a virtualized

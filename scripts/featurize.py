@@ -1,5 +1,5 @@
 """
-Script for computing the proteome feature vectors.
+Script for computing many (e.g. over a proteome) feature vectors.
 
 Example
 -------

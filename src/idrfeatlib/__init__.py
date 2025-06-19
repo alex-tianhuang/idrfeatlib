@@ -1,9 +1,10 @@
 """
-Another attempt at an IDR feature analysis library.
+An IDR feature analysis library.
 
-Unlike my previous (four?) attempts, this one is very quick and dirty,
+Unlike my previous attempts at such a library, this one is very quick and dirty,
 not optimized, and only really cares about the "happy path". If you feed
-in the wrong type or feed in a garbage string as a protein sequence, that's on you.
+in the wrong type or feed in a strange string as a protein sequence, that's on you
+and I will let undefined behaviour take over.
 
 Breakdown
 ---------
