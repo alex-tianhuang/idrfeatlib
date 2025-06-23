@@ -51,6 +51,7 @@ class CompositionMachine:
         --------
         The structure of this function is a little unorthodox because typically Python people like `_private` functions
         But I prefer local closures defined in the body of the function because underscores are ugly.
+        (Frankly, I prefer public as a keyword, but that's probably too much to ask)
         
         Most of the function is defining various gradient computing closures for each subtype of feature
         and then bundling them all together in an `autograd_closure_list`, which acts like a virtualized
@@ -259,8 +260,6 @@ class CompositionMachine:
                 featname: str, 
                 compute: str, 
                 residue_groups: typing.Dict[str, str],
-                # motif_frequencies: typing.Dict[str, float],
-                # residue_frequencies: typing.Optional[typing.Dict[str, float]],
                 **kwargs
             ):
             if compute == "score":
@@ -344,16 +343,12 @@ class CompositionMachine:
 
         features = features_dict["features"]
         residue_groups = features_dict.get("residue_groups") or {}
-        # motif_frequencies = features_dict.get("motif_frequencies") or {}
-        # residue_frequencies = features_dict.get("aa_frequencies")
         errors = {}
         for featname, feature_params in features.items():
             try:
                 compile_one_feature(
                     featname=featname,
                     residue_groups=residue_groups,
-                    # motif_frequencies=motif_frequencies,
-                    # residue_frequencies=residue_frequencies,
                     **feature_params,
                 )
             except (ValueError, TypeError) as e:

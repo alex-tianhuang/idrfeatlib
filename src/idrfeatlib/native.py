@@ -168,40 +168,6 @@ def compile_native_feature(
 
     `compute=other`
     No additional parameters required.
-
-    OOP Rant
-    --------
-    a.k.a. the oop rebuttal that **nobody asked for**.
-    Really, you don't have to read this.
-
-    This function could have (and historically has) been replaced by an abstract `FeatureConfig`
-    or `IntoFeatureFunction` interface and a dict of implementors. That programming style,
-    however, is what led to the insanity of my last IDR feature libraries, where I had
-    to keep making up new files to distinguish between `Feature`, `ConfiguresOneFeature`,
-    `FeatureConfig`, and `ConfigureFeaturesBuilder`. While Java devs are used to this horror,
-    I personally find it incredibly hard to maintain (I have written this library four
-    times now primarily due to this abstraction bloat).
-
-    Additionally, I kept getting the abstraction wrong. Initially, the feature configuration
-    interface seemed easy: `def into_feature_function(self) -> typing.Callable[[str], float]`.
-
-    ... and then I wanted to add the `subtract_expected` parameter that Iva/Khaled used on their
-    repeat code, which depended on a single `aa_frequencies` dict. So does the interface
-    need to be modified so that there is some way of using shared state in the compilation,
-    or does every `Repeats` object now have to hold a reference to the `aa_frequencies` dict?
-
-    ... and then I wanted to add additional arguments, for instance when running a design loop and
-    the use of point mutations and the previous SCD can bypass a quadratic SCD calculation. So
-    do I need a generic helper class that contains additional context that can be used to speed
-    up a computation? Is the new signature something like this?
-    `def into_feature_function(self, compile_time_state) -> typing.Callable[[str, RUNTIME_STATE], float]`?
-
-    Would an interface like that be useful at all to developers trying to understand what
-    the `FeatureConfig` abstract class is doing? I doubt it. Instead, the `typing.Callable[[str], float]`
-    interface describes succinctly and precisely what an IDR feature function ought to be.
-    Any code that can produce such a closure is a form of feature configuration.
-
-    This concludes my rant.
     """
     from functools import partial
 
