@@ -18,11 +18,11 @@ def parse_args():
 
 def main():
     args = parse_args()
-    from benchstuff import Fasta, Regions, PvariantsDict, DesignDict
     from idrfeatlib import FeatureVector
     from idrfeatlib.featurizer import compile_featurizer, Featurizer
     from idrfeatlib.native import compile_native_featurizer
     from idrfeatlib.metric import Metric
+    from idrfeatlib.utils import read_fasta, read_nested_csv, read_regions_csv
     import json
     import sys
     import csv
@@ -46,11 +46,9 @@ def main():
     if featurizer.keys() != metric.weights.as_dict.keys():
         raise RuntimeError("featurizer and metric feature vector `%s` have different features" % args.weights_feature_vector)
     featurizer = Featurizer(featurizer)
-    fa = Fasta.load(args.input_sequences)
-    Fasta.assume_unique = True
-    
+    fa = dict(read_fasta(args.input_sequences))
     if args.input_regions is None:
-        designs = PvariantsDict.load(args.design_csv, assume_unique=False)
+        designs = read_nested_csv(args.design_csv, 2, group_multiple=True)
         with open(args.output_csv, "w") as file:
             w = csv.DictWriter(file, ["ProteinID", "DesignID", "Iteration", "Distance"])
             w.writeheader()
@@ -80,8 +78,8 @@ def main():
                             "Distance": dist
                         })
     else:
-        regions, _ = Regions.load(args.input_regions)
-        designs = DesignDict.load(args.design_csv, assume_unique=False)
+        regions = read_regions_csv(args.input_regions)
+        designs = read_nested_csv(args.design_csv, 3, group_multiple=True)
         with open(args.output_csv, "w") as file:
             w = csv.DictWriter(file, ["ProteinID", "RegionID", "DesignID", "Iteration", "Distance"])
             w.writeheader()

@@ -107,8 +107,8 @@ def design_all(num_processes, tasks):
 
 def main():
     args = parse_args()
-    from benchstuff import Fasta, Regions, RegionsDict, ProteinDict, PvariantsDict, DesignDict
     from idrfeatlib import FeatureVector
+    from idrfeatlib.utils import read_nested_csv, iter_nested, read_fasta, read_regions_csv
     from idrfeatlib.featurizer import compile_featurizer
     from idrfeatlib.native import compile_native_featurizer
     from idrfeatlib.metric import Metric
@@ -148,8 +148,7 @@ def main():
     else:
         designer = FeatureDesigner(featurizer, metric, covergence_threshold=CONVERGENCE_THRESHOLD, good_moves_threshold=GOOD_MOVES_THRESHOLD, decent_moves_threshold=DECENT_MOVES_THRESHOLD, rng=random.Random())
     
-    fa = Fasta.load(args.input_sequences)
-    Fasta.assume_unique = True
+    fa = dict(read_fasta(args.input_sequences))
     tasks = []
     colnames = ["ProteinID"]
     featnames = featurizer.keys()
@@ -161,16 +160,16 @@ def main():
         if args.keep_trajectory:
             colnames.append("Iteration")
         colnames += featnames
-        fa = fa.filter(lambda _, seq: len(seq) >= LENGTH_THRESHOLD)
+        fa = {protid: seq for protid, seq in fa.items() if len(seq) >= LENGTH_THRESHOLD}
         if args.query_file is None:
             if args.seeds_file is None:
                 n_random = args.n_random or 1
                 rng = random.Random()
-                seeds = fa.to_protein_dict().map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+                seeds = {protid: [rng.randint(0, MAX_SEED) for _ in range(n_random)] for protid in fa.keys()}
             else:
-                seeds = ProteinDict.load(args.seeds_file, assume_unique=False)
-                seeds = seeds.filter(lambda protid, _: protid in fa).map_values(lambda row: row[SEED_COLNAME])
-            for protid, prot_seeds in seeds:
+                seeds = read_nested_csv(args.seeds_file, 1, group_multiple=True)
+                seeds = {protid: [row[SEED_COLNAME] for row in rows] for protid, rows in seeds.items() if protid in fa}
+            for protid, prot_seeds in seeds.items():
                 if (entry := fa.get(protid)) is None:
                     continue
                 _, target = entry
@@ -182,8 +181,8 @@ def main():
                         (None, target, protid, None, design_id, seed, designer, colnames, args)
                     )
         else:
-            qries = PvariantsDict.load(args.query_file)
-            for protid, designid, row in qries.iter_nested():
+            qries = read_nested_csv(args.query_file, 2)
+            for protid, designid, row in iter_nested(qries, 2):
                 if (entry := fa.get(protid)) is None:
                     continue
                 _, target = entry
@@ -198,17 +197,17 @@ def main():
         if args.keep_trajectory:
             colnames.append("Iteration")
         colnames += featnames
-        regions, _ = Regions.load(args.input_regions)
-        regions = regions.filter(lambda _p, _r, region: region.len() >= LENGTH_THRESHOLD)
+        regions = read_regions_csv(args.input_regions)
+        regions = {protid: ret for protid, entry in regions.items() if (ret := {regionid: (start, stop) for regionid, (start, stop) in entry.items() if stop - start >= LENGTH_THRESHOLD})}
         if args.query_file is None:
             if args.seeds_file is None:
                 n_random = args.n_random or 1
                 rng = random.Random()
-                seeds = regions.map_values(lambda _: [rng.randint(0, MAX_SEED) for _ in range(n_random)])
+                seeds = {protid: {regionid: [rng.randint(0, MAX_SEED) for _ in range(n_random)] for regionid in entry.keys() if regionid in regions} for protid, entry in regions.items() if protid in fa}
             else:
-                seeds = RegionsDict.load(args.seeds_file, assume_unique=False)
-                seeds = seeds.filter(lambda protid, regionid, _: regionid in (regions.get(protid) or {}))
-            for protid, regionid, region_seeds in seeds.iter_nested():
+                seeds = read_nested_csv(args.seeds_file, 2, group_multiple=True)
+                seeds = {protid: {regionid: [row[SEED_COLNAME] for row in rows] for regionid, rows in entry.items() if regionid in regions} for protid, entry in seeds.items() if protid in fa}
+            for protid, regionid, region_seeds in iter_nested(seeds, 2):
                 if (entry := fa.get(protid)) is None:
                     continue
                 _, target_whole = entry
@@ -225,8 +224,8 @@ def main():
                         (None, target, protid, regionid, design_id, seed, designer, colnames, args)
                     )
         else:
-            qries = DesignDict.load(args.query_file)
-            for protid, regionid, designid, row in qries.iter_nested():
+            qries = read_nested_csv(args.query_file, 3)
+            for protid, regionid, designid, row in iter_nested(qries, 3):
                 if (entry := fa.get(protid)) is None:
                     continue
                 _, target_whole = entry

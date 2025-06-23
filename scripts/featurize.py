@@ -17,8 +17,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    from benchstuff import Fasta
-    from benchstuff import Regions
+    from idrfeatlib.utils import read_fasta, read_regions_csv, iter_nested
     from idrfeatlib import FeatureVector
     from idrfeatlib.featurizer import Featurizer, compile_featurizer
     from idrfeatlib.native import compile_native_featurizer
@@ -34,7 +33,7 @@ def main():
     for featname, error in errors.items():
         print("error compiling `%s`: %s" % (featname, error), file=sys.stderr)        
     featurizer = Featurizer(featurizer)
-    fa = Fasta.load(args.input_sequences)
+    fa = read_fasta(args.input_sequences)
     if args.input_regions is None:
         seqs = tqdm.tqdm(fa, total=len(fa), desc="featurizing sequences")
         feature_vectors, errors = featurizer.featurize_to_matrices(seqs)
@@ -42,10 +41,10 @@ def main():
             print("error for `%s`: %s" % (proteinid, error), file=sys.stderr)
         FeatureVector.dump(list(feature_vectors.items()), args.output_file, "ProteinID")
     else:
-        regions, _ = Regions.load(args.input_regions)
-        Fasta.assume_unique = True
+        fa = dict(fa)
+        regions = read_regions_csv(args.input_regions)
         seqs = []
-        for protid, regionid, (start, stop) in regions.iter_nested():
+        for protid, regionid, (start, stop) in iter_nested(regions, 2):
             if (entry := fa.get(protid)) is None:
                 continue
             _, whole_seq = entry
