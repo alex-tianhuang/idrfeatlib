@@ -12,14 +12,10 @@ Installation
 ------------
 
 To use this ``idrfeatlib`` package,
-pip install the `benchstuff package <https://github.com/alex-tianhuang/benchstuff>`_.
-
-Then install the idrfeatlib package from github:
+pip install the idrfeatlib package from github:
 
 .. code-block:: console
 
-    (.venv) $ git clone https://github.com/alex-tianhuang/benchstuff
-    (.venv) $ pip install ./benchstuff
     (.venv) $ git clone https://github.com/alex-tianhuang/idrfeatlib
     (.venv) $ pip install ./idrfeatlib
 
