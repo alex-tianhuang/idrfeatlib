@@ -124,7 +124,7 @@ def read_nested_csv(path, pkey_depth, *, group_multiple=False):
                 entry[pkey] = row
     return return_value
 
-def iter_nested(nested_dict, depth) -> typing.Generator[typing.Tuple[typing.Any, ...]]:
+def iter_nested(nested_dict, depth) -> typing.Iterator[typing.Tuple[typing.Any, ...]]:
     """
     Iterate over a nested dictionary.
 
