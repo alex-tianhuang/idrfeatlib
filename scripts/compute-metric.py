@@ -17,8 +17,7 @@ def parse_args():
     parser.add_argument("--feature-file", required=False, help="feature configuration json")
     return parser.parse_args()
 
-def main():
-    args = parse_args()
+def main(args):
     from idrfeatlib import FeatureVector
     from idrfeatlib.featurizer import Featurizer, compile_featurizer
     from idrfeatlib.native import compile_native_featurizer
@@ -47,4 +46,4 @@ def main():
     Metric(mean, weights).dump(args.output_file, primary_id=args.output_label)
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())

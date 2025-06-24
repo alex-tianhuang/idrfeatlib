@@ -15,8 +15,7 @@ def parse_args():
     parser.add_argument("--feature-file", required=False, help="feature configuration json")
     return parser.parse_args()
 
-def main():
-    args = parse_args()
+def main(args):
     from idrfeatlib.utils import read_fasta, read_regions_csv, iter_nested
     from idrfeatlib import FeatureVector
     from idrfeatlib.featurizer import Featurizer, compile_featurizer
@@ -63,4 +62,4 @@ def main():
     
      
 if __name__ == "__main__":
-    main()
+    main(parse_args())

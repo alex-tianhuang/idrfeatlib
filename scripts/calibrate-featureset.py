@@ -16,8 +16,7 @@ def parse_args():
     parser.add_argument("output_features", help="output feature config file (will be a json)")
     return parser.parse_args()
 
-def main():
-    args = parse_args()
+def main(args):
     from idrfeatlib.utils import read_regions_csv, read_fasta, iter_nested
     from idrfeatlib.featurizer import Featurizer, compile_featurizer
     from idrfeatlib.native import compile_native_featurizer
@@ -126,4 +125,4 @@ def main():
     
      
 if __name__ == "__main__":
-    main()
+    main(parse_args())

@@ -105,8 +105,7 @@ def design_all(num_processes, tasks):
             design_task(*task)
 
 
-def main():
-    args = parse_args()
+def main(args):
     from idrfeatlib import FeatureVector
     from idrfeatlib.utils import read_nested_csv, iter_nested, read_fasta, read_regions_csv
     from idrfeatlib.featurizer import compile_featurizer
@@ -282,4 +281,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())
