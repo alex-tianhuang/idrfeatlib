@@ -7,4 +7,5 @@ SCRIPTS_DIR = "{}/scripts/".format(pathlib.Path(os.path.dirname(os.path.realpath
 assert os.path.exists(SCRIPTS_DIR)
 
 def run_script(basename, argv):
-    sp.run(["python", "{}/{}".format(SCRIPTS_DIR, basename)] + argv, check=True)
+    """Run a script from the `scripts` directory in this repo."""
+    sp.run(["python", "{}/{}.py".format(SCRIPTS_DIR, basename)] + argv, check=True)
