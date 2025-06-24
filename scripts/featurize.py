@@ -47,7 +47,7 @@ def main():
         for protid, regionid, (start, stop) in iter_nested(regions, 2):
             if (entry := fa.get(protid)) is None:
                 continue
-            _, whole_seq = entry
+            whole_seq = entry
             assert isinstance(whole_seq, str), type(whole_seq)
             seq = whole_seq[start:stop]
             if len(seq) != stop - start:
