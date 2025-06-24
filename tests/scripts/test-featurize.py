@@ -184,4 +184,4 @@ def test_custom_feature_json(tmp_path):
             #     continue
             raise RuntimeError("unreachable assertion, bad test setup")
         if len(prot_assertions) > 0:
-            raise RuntimeError("untested assertions, bad test setu. untested is the following: {}".format(prot_assertions))
+            raise RuntimeError("untested assertions, bad test setup. untested is the following: {}".format(prot_assertions))
