@@ -184,7 +184,7 @@ def iter_nested(nested_dict, depth) -> typing.Generator[typing.Tuple[typing.Any,
             depth += 1
             continue
         key, value = nxt
-        if depth > 0:
+        if depth > 1:
             stack.append((top_iter, key))
             top_iter = iter(value.items())
             depth -= 1
