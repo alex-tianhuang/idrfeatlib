@@ -87,8 +87,8 @@ def design_task(query, target, protid, regionid, designid, seed, designer, colna
 def design_all(num_processes, tasks):
     if num_processes > 1:
         import multiprocessing
-        import pathos
-        import tqdm_pathos
+        import pathos # type: ignore
+        import tqdm_pathos # type: ignore
         stderr_lock = multiprocessing.Lock()
         output_lock = multiprocessing.Lock()
         pool = pathos.multiprocessing.Pool(num_processes, initializer=init_subprocess, initargs=(stderr_lock, output_lock))
