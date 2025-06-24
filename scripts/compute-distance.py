@@ -55,7 +55,7 @@ def main():
             for protid, ddict in tqdm.tqdm(designs, desc="computing distance"):
                 if (entry := fa.get(protid)) is None:
                     continue 
-                _, wt_sequence = entry
+                wt_sequence = entry
                 wt_fvec, errors = featurizer.featurize(wt_sequence)
                 if len(errors) > 0:
                     for featname, error in errors.items():
@@ -86,7 +86,8 @@ def main():
             for protid, rdict in tqdm.tqdm(designs, desc="computing distance"):
                 if (entry := fa.get(protid)) is None:
                     continue
-                _, whole_sequence = entry
+                whole_sequence = entry
+                assert isinstance(whole_sequence, str)
                 if (entryl1 := regions.get(protid)) is None:
                     continue
                 for regionid, ddict in rdict.items():

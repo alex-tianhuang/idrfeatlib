@@ -172,7 +172,7 @@ def main():
             for protid, prot_seeds in seeds.items():
                 if (entry := fa.get(protid)) is None:
                     continue
-                _, target = entry
+                target = entry
                 assert isinstance(target, str)
                 for counter, seed in enumerate(prot_seeds):
                     seed = int(seed)
@@ -185,7 +185,8 @@ def main():
             for protid, designid, row in iter_nested(qries, 2):
                 if (entry := fa.get(protid)) is None:
                     continue
-                _, target = entry
+                target = entry
+                assert isinstance(target, str)
                 query = row[QUERY_COLNAME]
                 tasks.append(
                     (query, target, protid, None, designid, None, designer, colnames, args)
@@ -203,14 +204,15 @@ def main():
             if args.seeds_file is None:
                 n_random = args.n_random or 1
                 rng = random.Random()
-                seeds = {protid: {regionid: [rng.randint(0, MAX_SEED) for _ in range(n_random)] for regionid in entry.keys() if regionid in regions} for protid, entry in regions.items() if protid in fa}
+                seeds = {protid: {regionid: [rng.randint(0, MAX_SEED) for _ in range(n_random)] for regionid in entry.keys()} for protid, entry in regions.items() if protid in fa}
+                
             else:
                 seeds = read_nested_csv(args.seeds_file, 2, group_multiple=True)
-                seeds = {protid: {regionid: [row[SEED_COLNAME] for row in rows] for regionid, rows in entry.items() if regionid in regions} for protid, entry in seeds.items() if protid in fa}
+                seeds = {protid: {regionid: [row[SEED_COLNAME] for row in rows] for regionid, rows in entry.items()} for protid, entry in seeds.items() if protid in fa}
             for protid, regionid, region_seeds in iter_nested(seeds, 2):
                 if (entry := fa.get(protid)) is None:
                     continue
-                _, target_whole = entry
+                target_whole = entry
                 assert isinstance(target_whole, str)
                 start, stop = regions[protid][regionid] 
                 target = target_whole[start:stop]
@@ -228,7 +230,7 @@ def main():
             for protid, regionid, designid, row in iter_nested(qries, 3):
                 if (entry := fa.get(protid)) is None:
                     continue
-                _, target_whole = entry
+                target_whole = entry
                 assert isinstance(target_whole, str)
                 start, stop = regions[protid][regionid] 
                 target = target_whole[start:stop]
