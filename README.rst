@@ -2,8 +2,7 @@ IDRFeatlib
 ==========
 
 Welcome to `idrfeatlib`, the beginnings of library for general extensible
-sequence feature analysis. The docs live in the repo at the path
-`docs/build/index.html`. To download this repo, you can run::
+sequence feature analysis. To download this repo, you can run::
 
     $ git clone https://github.com/alex-tianhuang/idrfeatlib .
     $ cd idrfeatlib
