@@ -6,6 +6,7 @@ like `native-features.json` in the same directory.
 
 See `compile_native_feature` for the format of configuration.
 """
+
 import re
 import typing
 
@@ -181,7 +182,11 @@ def compile_native_feature(
             raise TypeError("expected `average` to be True or False")
         if not isinstance(score, dict):
             raise TypeError("expected `score` to be a dict of residue->score pairs")
-        return partial(score_pattern_matches, score={re.compile(pat): value for pat, value in score.items()}, average=average)
+        return partial(
+            score_pattern_matches,
+            score={re.compile(pat): value for pat, value in score.items()},
+            average=average,
+        )
 
     if compute == "count":
         if (pattern := kwargs.get("pattern")) is None:
@@ -270,7 +275,11 @@ def compile_native_feature(
                 repeat_pattern=re.compile("[%s]{2,}" % residues),
                 residue_frequency=residue_frequency,
             )
-        return partial(repeats_minus_expected, repeat_pattern=re.compile("[%s]{2,}" % residues), residue_frequency=0)
+        return partial(
+            repeats_minus_expected,
+            repeat_pattern=re.compile("[%s]{2,}" % residues),
+            residue_frequency=0,
+        )
 
     if compute == "log_ratio":
         if (num_aa := kwargs.get("numerator")) is None:
@@ -426,8 +435,7 @@ def pattern_match_span(
         The regex pattern to determine the length of.
     """
     return sum(
-        right - left
-        for left, right in map(re.Match.span, pattern.finditer(sequence))
+        right - left for left, right in map(re.Match.span, pattern.finditer(sequence))
     )
 
 
@@ -438,7 +446,7 @@ def repeats_minus_expected(
 
     The first residue of every repeat is not counted, to be consistent with
     previous analysis.
-    
+
     Parameters
     ----------
     sequence : str
@@ -561,9 +569,10 @@ def abstract_spacing_calculation(
     sequence: str,
     candidates: typing.List[int],
     are_neighbours: typing.Callable[[str, str], bool],
-    prob_neighbor_given_candidate: typing.Callable[[str, typing.List[int], int], float],
+    prob_neighbor_given_candidate: "typing.Callable[[str, typing.List[int], int], typing.Tuple[typing.Literal['err'], ValueError] | typing.Tuple[typing.Literal['ok'], float]]",
     not_enough_candidates_error: str,
     blob: int,
+    zero_default: bool,
 ) -> float:
     """Calculate a spacing parameter.
 
@@ -585,15 +594,29 @@ def abstract_spacing_calculation(
         """The number of `neighbour` residues."""
         candidate_pairs = list(zip(candidates[:-1], candidates[1:]))
         if not candidate_pairs:
-            raise ValueError(not_enough_candidates_error)
-        return sum(
+            return "err", ValueError(not_enough_candidates_error)
+        return "ok", sum(
             1
             for i, j in candidate_pairs
             if are_neighbours(sequence[i], sequence[j]) and (abs(i - j) <= blob)
         )
 
-    actual_neighbors = count_neighbors()
-    p: float = prob_neighbor_given_candidate(sequence, candidates, blob)
+    case, ret = count_neighbors()
+    if case == "err":
+        if zero_default:
+            return 0
+        assert isinstance(ret, ValueError)
+        raise ret
+    assert isinstance(ret, int)
+    actual_neighbors = ret
+    case, ret = prob_neighbor_given_candidate(sequence, candidates, blob)
+    if case == "err":
+        if zero_default:
+            return 0
+        assert isinstance(ret, ValueError)
+        raise ret
+    assert isinstance(ret, float)
+    p = ret
     mean_neighbors: float = p * len(candidates)
     sd_neighbors: float = sqrt(p * (1 - p) * len(candidates))
     return (actual_neighbors - mean_neighbors) / sd_neighbors
@@ -604,6 +627,7 @@ def simple_spacing_closure(
     res_group_name: str,
     *,
     blob: int = 5,
+    zero_default: bool = True,
 ):
     """
     Set up a closure to compute simple spacing for this residue group.
@@ -625,11 +649,11 @@ def simple_spacing_closure(
         proportion_candidates: float = len(candidates) / len(sequence)
         # It shouldn't be zero either, but that should be caught already.
         if proportion_candidates == 1:
-            raise ValueError(
+            return "err", ValueError(
                 "cannot compute %s spacing on sequence with only %s residues"
                 % (res_group_name, res_group_name)
             )
-        return proportion_candidates * sum(
+        return "ok", proportion_candidates * sum(
             (1 - proportion_candidates) ** i for i in range(blob)
         )
 
@@ -650,15 +674,13 @@ def simple_spacing_closure(
             prob_neighbor_given_candidate=prob_neighbor_given_candidate,
             not_enough_candidates_error=not_enough_candidates_error,
             blob=blob,
+            zero_default=zero_default,
         )
 
     return simple_spacing
 
 
-def custom_kappa_closure(
-    *,
-    blob: int = 5,
-):
+def custom_kappa_closure(*, blob: int = 5, zero_default: bool = True):
     """
     Set up a closure to compute a kappa-like measure for this residue group.
 
@@ -681,13 +703,13 @@ def custom_kappa_closure(
             2 * (count_pos) * (count_neg) / (len(candidates) ** 2)
         )
         if proportion_candidates == 1 and prob_charges_are_diff == 0:
-            raise ValueError(
+            return "err", ValueError(
                 "cannot compute charge spacing, `custom_kappa` cannot deal with all residues of one charge"
             )
         prob_next_charge_in_blob: float = proportion_candidates * sum(
             (1 - proportion_candidates) ** i for i in range(blob)
         )
-        return prob_next_charge_in_blob * (1 - prob_charges_are_diff)
+        return "ok", prob_next_charge_in_blob * (1 - prob_charges_are_diff)
 
     def are_neighbours(res_a: str, res_b: str):
         return BINARY_CHARGE[res_a] == BINARY_CHARGE[res_b]
@@ -706,6 +728,7 @@ def custom_kappa_closure(
             prob_neighbor_given_candidate=prob_neighbor_given_candidate,
             not_enough_candidates_error=not_enough_candidates_error,
             blob=blob,
+            zero_default=zero_default,
         )
 
     return custom_kappa
